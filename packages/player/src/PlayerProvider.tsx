@@ -36,6 +36,7 @@ export interface FoliaPlayerProviderProps {
     host?: FoliaPlayerHostAdapter;
     theme?: DualTheme;
     isDaylight?: boolean;
+    enabled?: boolean;
 }
 
 const FoliaPlayerContext = createContext<FoliaPlayerContextValue | null>(null);
@@ -51,6 +52,7 @@ export function FoliaPlayerProvider({
     host = {},
     theme = DEFAULT_FOLIA_DUAL_THEME,
     isDaylight = false,
+    enabled = true,
 }: FoliaPlayerProviderProps) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
@@ -95,7 +97,7 @@ export function FoliaPlayerProvider({
     }, [activeId, tracks]);
 
     useEffect(() => {
-        if (!activeTrack || !host.hydrateTrack || resolved[activeTrack.id]) return;
+        if (!enabled || !activeTrack || !host.hydrateTrack || resolved[activeTrack.id]) return;
         const controller = new AbortController();
         setIsLoading(true);
         void host.hydrateTrack(activeTrack, controller.signal).then((value) => {
@@ -111,7 +113,7 @@ export function FoliaPlayerProvider({
             if (!controller.signal.aborted) setIsLoading(false);
         });
         return () => controller.abort();
-    }, [activeTrack, host, resolved]);
+    }, [activeTrack, enabled, host, resolved]);
 
     useEffect(() => () => {
         for (const release of releasesRef.current.values()) release();
@@ -232,7 +234,7 @@ export function FoliaPlayerProvider({
     return (
         <FoliaPlayerContext.Provider value={value}>
             <div className="folia-player-root" data-folia-daylight={isDaylight} style={themeStyle}>
-                <audio
+                {enabled ? <audio
                 ref={attachAudio}
                 crossOrigin="anonymous"
                 preload="metadata"
@@ -262,7 +264,7 @@ export function FoliaPlayerProvider({
                         setIsPlaying(false);
                     }
                 }}
-                />
+                /> : null}
                 {children}
             </div>
         </FoliaPlayerContext.Provider>
