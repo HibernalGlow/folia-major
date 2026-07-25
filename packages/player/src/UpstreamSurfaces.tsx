@@ -19,6 +19,7 @@ export interface FoliaUnifiedPanelProps {
     onNavigateHome?: () => void;
     onOpenFullscreen?: () => void;
     extraSettings?: ReactNode;
+    hideToggleButton?: boolean;
 }
 
 /**
@@ -33,6 +34,7 @@ export function FoliaUnifiedPanel({
     presentation = 'embedded',
     onNavigateHome = noop,
     extraSettings,
+    hideToggleButton = false,
 }: FoliaUnifiedPanelProps) {
     const { actions, isDaylight, preferences, resolvedTheme, snapshot, tracks } = useFoliaPlayer();
     const [uncontrolledOpen, setUncontrolledOpen] = useState(true);
@@ -131,8 +133,8 @@ export function FoliaUnifiedPanel({
                     onVolumePreview: setVolume,
                     onVolumeChange: setVolume,
                     onToggleMute: () => setVolume(preferences.volume > 0 ? 0 : 0.8),
-                    showOpenPanelCloseButton: false,
-                    hideToggleButton: false,
+                    showOpenPanelCloseButton: preferences.showOpenPanelCloseButton,
+                    hideToggleButton,
                     playbackControlsDisabled: !currentSong,
                     playbackProgress: snapshot.duration > 0 ? snapshot.currentTime / snapshot.duration : 0,
                     onOpenSettings: () => setSettingsOpen(true),

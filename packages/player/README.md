@@ -14,12 +14,22 @@ button/card CSS must not restyle Folia's internal component tree.
 The host owns library scanning, durable configuration and theme mapping. See the
 exported `FoliaPlayerHostAdapter` and `FoliaPlayerPreferences` contracts.
 
+`FoliaPlayerSettingsSurface` contains playback, visualizer, and Lab sections. The Lab
+preferences cover static visualizers, a static Home background, an optional 60/90/120
+FPS cap, and the upstream player-page visibility controls. The package does not write
+Folia's application localStorage keys; hosts persist the complete preferences object.
+
+The FPS cap is scoped to `FoliaFullscreenSurface` while its lyrics player view is
+active. Returning Home, disabling the cap, or unmounting the surface restores the
+host's original `requestAnimationFrame` and `cancelAnimationFrame`. When more than one
+lyrics surface is active, the lowest requested cap is used until that surface leaves.
+
 Hosts can restore a persisted selection with `initialActiveTrackId` and persist later
 user selections through `onActiveTrackChange`. Restoration selects the track without
 autoplaying or restoring playback seconds.
 
 `hydrateTrackPreview` is the lightweight library hydration path for metadata and album
-art. The provider runs it with bounded concurrency for non-active tracks. The active
+art. The provider runs it serially at a fixed interval for non-active tracks. The active
 track always uses `hydrateTrack`, so lyrics and other playback metadata are still fully
 resolved. Both hooks may return `release`; the provider releases superseded, removed,
 aborted, and unmounted resources.

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useMotionValueEvent } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import FloatingPlayerControls from '../../../src/components/FloatingPlayerControls';
@@ -10,6 +10,7 @@ import { FoliaLocalHomeSurface } from './LocalHomeSurface';
 import { useFoliaPlayer } from './PlayerProvider';
 import { FoliaUnifiedPanel } from './UpstreamSurfaces';
 import { FoliaPlayerSettingsSurface } from './SettingsSurface';
+import { clearScopedVisualizerFrameRate, setScopedVisualizerFrameRate } from './scopedFrameRateLimiter';
 import type { FoliaLoopMode, FoliaTrack } from './types';
 
 // packages/player/src/FullscreenSurface.tsx
@@ -29,6 +30,7 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true, bran
     const [currentView, setCurrentView] = useState<FoliaFullscreenView>('home');
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const frameRateOwnerRef = useRef(Symbol('folia-fullscreen-frame-rate'));
     const track = snapshot.activeTrack;
     const lines = track?.lyrics?.lines ?? [];
     const playerState = snapshot.isPlaying
@@ -65,6 +67,15 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true, bran
         if (currentView !== 'player') setIsPanelOpen(false);
     }, [currentView]);
 
+    useEffect(() => {
+        const owner = frameRateOwnerRef.current;
+        setScopedVisualizerFrameRate(
+            owner,
+            currentView === 'player' ? preferences.visualizerFrameRate : 'off',
+        );
+        return () => clearScopedVisualizerFrameRate(owner);
+    }, [currentView, preferences.visualizerFrameRate]);
+
     const navigateToHome = useCallback(() => setCurrentView('home'), []);
     const navigateToPlayer = useCallback(() => setCurrentView('player'), []);
     const toggleLoop = useCallback(() => {
@@ -78,6 +89,9 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true, bran
             data-folia-surface="fullscreen"
             data-folia-view={currentView}
             data-folia-active-track-id={track?.id ?? ''}
+            data-folia-static-mode={preferences.staticMode}
+            data-folia-home-background-static={currentView === 'home' && preferences.disableHomeDynamicBackground}
+            data-folia-visualizer-frame-rate={currentView === 'player' ? preferences.visualizerFrameRate : 'off'}
         >
             <FoliaI18nScope>
                 <div
@@ -105,16 +119,19 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true, bran
                             songAlbum={track.album}
                             coverUrl={track.coverUrl}
                             seed={track.id}
+                            staticMode={preferences.staticMode}
+                            backgroundStaticMode={currentView === 'home' && preferences.disableHomeDynamicBackground}
                             background={preferences.background}
                             lyricsFontScale={preferences.lyricsFontScale}
                             subtitleFontScale={preferences.subtitleFontScale}
                             showHarmonySubtitle={preferences.showHarmonySubtitle}
                             showSubtitleTranslation={preferences.showSubtitleTranslation}
+                            hideTranslationSubtitle={currentView === 'player' && preferences.hidePlayerTranslationSubtitle}
                             showText={currentView === 'player'}
                             paused={!snapshot.isPlaying}
                             visualizerTunings={preferences.visualizerTunings}
                             onBack={currentView === 'player' ? navigateToHome : undefined}
-                            alwaysShowBackButton={currentView === 'player'}
+                            alwaysShowBackButton={currentView === 'player' && preferences.alwaysShowPlayerBackButton}
                             onLyricLineSeek={actions.seek}
                         />
                     ) : (
@@ -126,10 +143,12 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true, bran
                                 coverUrl: track?.coverUrl,
                                 isDaylight,
                                 seed: track?.id,
+                                staticMode: preferences.staticMode,
+                                backgroundStaticMode: currentView === 'home' && preferences.disableHomeDynamicBackground,
                                 background: preferences.background,
                                 paused: !snapshot.isPlaying,
                                 onBack: currentView === 'player' ? navigateToHome : undefined,
-                                alwaysShowBackButton: currentView === 'player',
+                                alwaysShowBackButton: currentView === 'player' && preferences.alwaysShowPlayerBackButton,
                             }}
                         >
                             {currentView === 'player' ? <FullscreenEmptyState track={track} error={snapshot.error} /> : null}
@@ -165,6 +184,7 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true, bran
                         theme={resolvedTheme}
                         isDaylight={isDaylight}
                         controlsDisabled={snapshot.isLoading}
+                        hideControlBar={currentView === 'player' && preferences.hidePlayerProgressBar}
                     />
                 ) : null}
 
@@ -174,6 +194,7 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true, bran
                         open={isPanelOpen}
                         onOpenChange={setIsPanelOpen}
                         onNavigateHome={navigateToHome}
+                        hideToggleButton={preferences.hidePlayerRightPanelButton}
                     />
                 ) : null}
                 <FoliaPlayerSettingsSurface open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />

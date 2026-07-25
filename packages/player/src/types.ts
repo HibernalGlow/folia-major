@@ -1,5 +1,5 @@
 import type { MotionValue } from 'framer-motion';
-import type { AudioBands, DualTheme, LyricData, Theme, VisualizerMode } from '../../../src/types';
+import type { AudioBands, DualTheme, LyricData, Theme, VisualizerFrameRate, VisualizerMode } from '../../../src/types';
 import type { VisualizerBackgroundConfig } from '../../../src/components/visualizer/backgrounds/definition';
 import type { VisualizerTuningBundle } from '../../../src/components/visualizer/tuningRegistry';
 
@@ -7,6 +7,7 @@ import type { VisualizerTuningBundle } from '../../../src/components/visualizer/
 
 export type FoliaLoopMode = 'off' | 'all' | 'one' | 'random';
 export type FoliaReplayGainMode = 'off' | 'track' | 'album';
+export type FoliaVisualizerFrameRate = VisualizerFrameRate;
 
 export interface FoliaTrack {
     id: string;
@@ -54,6 +55,14 @@ export interface FoliaPlayerPreferences {
     subtitleFontScale?: number;
     showHarmonySubtitle?: boolean;
     showSubtitleTranslation?: boolean;
+    staticMode: boolean;
+    disableHomeDynamicBackground: boolean;
+    visualizerFrameRate: FoliaVisualizerFrameRate;
+    hidePlayerProgressBar: boolean;
+    hidePlayerTranslationSubtitle: boolean;
+    hidePlayerRightPanelButton: boolean;
+    showOpenPanelCloseButton: boolean;
+    alwaysShowPlayerBackButton: boolean;
 }
 
 export interface FoliaPlayerHostAdapter {
@@ -123,4 +132,12 @@ export const DEFAULT_FOLIA_PLAYER_PREFERENCES: FoliaPlayerPreferences = {
     subtitleFontScale: 1,
     showHarmonySubtitle: true,
     showSubtitleTranslation: true,
+    staticMode: false,
+    disableHomeDynamicBackground: false,
+    visualizerFrameRate: 'off',
+    hidePlayerProgressBar: false,
+    hidePlayerTranslationSubtitle: false,
+    hidePlayerRightPanelButton: false,
+    showOpenPanelCloseButton: false,
+    alwaysShowPlayerBackButton: false,
 };

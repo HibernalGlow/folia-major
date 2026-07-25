@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { Database, Languages, RefreshCw, SlidersHorizontal, Sparkles, Volume2, X } from 'lucide-react';
+import { Database, FlaskConical, Languages, RefreshCw, SlidersHorizontal, Sparkles, Volume2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { VISUALIZER_REGISTRY, getVisualizerModeLabel } from '../../../src/components/visualizer/registry';
 import {
@@ -9,10 +9,12 @@ import {
 } from '../../../src/components/visualizer/backgrounds/registry';
 import type { VisualizerBackgroundMode, VisualizerMode } from '../../../src/types';
 import { FoliaI18nScope } from './FoliaI18nScope';
+import { FoliaLabSettingsSection } from './LabSettingsSection';
 import { useFoliaPlayer } from './PlayerProvider';
+import { SettingsCard, SettingsSwitch } from './SettingsControls';
 import { FoliaVisualizerSettings } from './VisualizerSettings';
 
-type SettingsSection = 'playback' | 'visualizer';
+type SettingsSection = 'playback' | 'visualizer' | 'lab';
 
 export interface FoliaPlayerSettingsSurfaceProps {
     open: boolean;
@@ -78,15 +80,16 @@ function SettingsDialog({ onClose, extraSettings }: FoliaPlayerSettingsSurfacePr
 
                 <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[180px_minmax(0,1fr)]">
                     <nav className="flex shrink-0 gap-2 border-b border-current/10 p-3 md:flex-col md:border-b-0 md:border-r" aria-label={t('playerPackage.settings')}>
-                        <SectionButton active={section === 'playback'} icon={<SlidersHorizontal size={17} />} label={t('playerPackage.playbackSettings')} onClick={() => setSection('playback')} />
-                        <SectionButton active={section === 'visualizer'} icon={<Sparkles size={17} />} label={t('playerPackage.visualizerSettings')} onClick={() => setSection('visualizer')} />
+                        <SectionButton active={section === 'playback'} icon={<SlidersHorizontal size={17} />} label={t('playerPackage.playbackSettings')} section="playback" onClick={() => setSection('playback')} />
+                        <SectionButton active={section === 'visualizer'} icon={<Sparkles size={17} />} label={t('playerPackage.visualizerSettings')} section="visualizer" onClick={() => setSection('visualizer')} />
+                        <SectionButton active={section === 'lab'} icon={<FlaskConical size={17} />} label={t('playerPackage.labSettings')} section="lab" onClick={() => setSection('lab')} />
                     </nav>
 
                     <div className="min-h-0 overflow-y-auto p-4 md:p-6">
                         {section === 'playback' ? (
                             <div className="space-y-4" data-folia-settings-section="playback">
                                 <SettingsCard icon={<Database size={18} />} title={t('playerPackage.backgroundMetadata')} description={t('playerPackage.backgroundMetadataDescription')}>
-                                    <Switch
+                                    <SettingsSwitch
                                         checked={preferences.backgroundMetadataEnabled}
                                         label={t('playerPackage.backgroundMetadata')}
                                         onChange={(backgroundMetadataEnabled) => actions.setPreferences({ backgroundMetadataEnabled })}
@@ -122,7 +125,7 @@ function SettingsDialog({ onClose, extraSettings }: FoliaPlayerSettingsSurfacePr
                                     </select>
                                 </SettingsCard>
                             </div>
-                        ) : (
+                        ) : section === 'visualizer' ? (
                             <div className="space-y-4" data-folia-settings-section="visualizer">
                                 <SettingsCard icon={<Sparkles size={18} />} title={t('playerPackage.visualizerMode')}>
                                     <select className="h-10 w-full rounded-lg border border-current/15 bg-transparent px-3" value={preferences.visualizerMode} onChange={(event) => actions.setPreferences({ visualizerMode: event.target.value as VisualizerMode })}>
@@ -136,14 +139,16 @@ function SettingsDialog({ onClose, extraSettings }: FoliaPlayerSettingsSurfacePr
                                 </SettingsCard>
                                 <SettingsCard icon={<Languages size={18} />} title={t('playerPackage.lyricsDisplay')}>
                                     <div className="space-y-4">
-                                        <Switch checked={preferences.showSubtitleTranslation !== false} label={t('playerPackage.showTranslation')} onChange={(showSubtitleTranslation) => actions.setPreferences({ showSubtitleTranslation })} />
-                                        <Switch checked={preferences.showHarmonySubtitle !== false} label={t('playerPackage.showHarmony')} onChange={(showHarmonySubtitle) => actions.setPreferences({ showHarmonySubtitle })} />
+                                        <SettingsSwitch checked={preferences.showSubtitleTranslation !== false} label={t('playerPackage.showTranslation')} onChange={(showSubtitleTranslation) => actions.setPreferences({ showSubtitleTranslation })} />
+                                        <SettingsSwitch checked={preferences.showHarmonySubtitle !== false} label={t('playerPackage.showHarmony')} onChange={(showHarmonySubtitle) => actions.setPreferences({ showHarmonySubtitle })} />
                                         <ScaleControl label={t('playerPackage.lyricsFontScale')} value={preferences.lyricsFontScale ?? 1} onChange={(lyricsFontScale) => actions.setPreferences({ lyricsFontScale })} />
                                         <ScaleControl label={t('playerPackage.subtitleFontScale')} value={preferences.subtitleFontScale ?? 1} onChange={(subtitleFontScale) => actions.setPreferences({ subtitleFontScale })} />
                                     </div>
                                 </SettingsCard>
                                 <FoliaVisualizerSettings />
                             </div>
+                        ) : (
+                            <FoliaLabSettingsSection />
                         )}
                     </div>
                 </div>
@@ -152,16 +157,8 @@ function SettingsDialog({ onClose, extraSettings }: FoliaPlayerSettingsSurfacePr
     );
 }
 
-function SectionButton({ active, icon, label, onClick }: { active: boolean; icon: ReactNode; label: string; onClick: () => void }) {
-    return <button type="button" className={`flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors md:flex-none md:justify-start ${active ? 'bg-current/10 font-semibold' : 'opacity-60 hover:bg-current/5 hover:opacity-100'}`} onClick={onClick}>{icon}<span className="truncate">{label}</span></button>;
-}
-
-function SettingsCard({ action, children, description, icon, title }: { action?: ReactNode; children: ReactNode; description?: string; icon: ReactNode; title: string }) {
-    return <section className="rounded-xl border border-current/10 bg-current/[0.035] p-4"><header className="mb-3 flex items-start gap-3"><span className="mt-0.5 opacity-70">{icon}</span><div className="min-w-0 flex-1"><h3 className="text-sm font-semibold">{title}</h3>{description ? <p className="mt-1 text-xs leading-5 opacity-55">{description}</p> : null}</div>{action}</header>{children}</section>;
-}
-
-function Switch({ checked, label, onChange }: { checked: boolean; label: string; onChange: (checked: boolean) => void }) {
-    return <button type="button" role="switch" aria-checked={checked} aria-label={label} className={`relative h-6 w-11 shrink-0 rounded-full p-1 transition-colors ${checked ? 'bg-[var(--folia-accent)]' : 'bg-current/15'}`} onClick={() => onChange(!checked)}><span className={`block size-4 rounded-full bg-white shadow-sm transition-transform ${checked ? 'translate-x-5' : 'translate-x-0'}`} /></button>;
+function SectionButton({ active, icon, label, onClick, section }: { active: boolean; icon: ReactNode; label: string; onClick: () => void; section: SettingsSection }) {
+    return <button type="button" data-folia-settings-nav={section} className={`flex min-w-0 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm transition-colors md:flex-none md:justify-start ${active ? 'bg-current/10 font-semibold' : 'opacity-60 hover:bg-current/5 hover:opacity-100'}`} onClick={onClick}>{icon}<span className="truncate">{label}</span></button>;
 }
 
 function ScaleControl({ label, onChange, value }: { label: string; onChange: (value: number) => void; value: number }) {

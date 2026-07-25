@@ -38,6 +38,7 @@ export type {
     FoliaReplayGainMode,
     FoliaResolvedTrack,
     FoliaTrack,
+    FoliaVisualizerFrameRate,
 } from './types';
 
 // packages/player/src/index.ts
