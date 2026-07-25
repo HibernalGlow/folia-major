@@ -135,7 +135,8 @@ const GridViewOverlayHost: React.FC<GridViewOverlayHostProps> = ({
 }) => {
     const { t } = useTranslation();
     const collectionSnapshot = useCollectionNavigationStore(state => state.snapshot);
-    const isDaylight = useSettingsUiStore(state => state.isDaylight);
+    const storedIsDaylight = useSettingsUiStore(state => state.isDaylight);
+    const isDaylight = surfaceProps.isDaylight ?? storedIsDaylight;
     const localLibraryCatalog = surfaceProps.localLibraryCatalog;
     const selectedCollection = getActiveGridViewCollection(collectionSnapshot);
     const [externalTracks, setExternalTracks] = useState<SongResult[] | undefined>(undefined);
@@ -580,7 +581,7 @@ const GridViewOverlayHost: React.FC<GridViewOverlayHostProps> = ({
     }, [surfaceProps]);
 
     const sourceActions = useMemo<GridViewSourceActions>(() => ({
-        local: {
+        local: surfaceProps.localSourceActions ?? {
             onRefresh: surfaceProps.onRefreshLocalSongs,
             onEditEntity: async (entityId) => setEditingEntityId(entityId),
             onOrganizeFolderSongInfo: async (collection) => {

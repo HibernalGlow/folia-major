@@ -33,11 +33,15 @@ export interface FoliaPlayerProviderProps {
     onLibraryRootsChange?: (roots: string[]) => void;
     preferences?: Partial<FoliaPlayerPreferences>;
     onPreferencesChange?: (preferences: FoliaPlayerPreferences) => void;
+    initialActiveTrackId?: string | null;
+    onActiveTrackChange?: (trackId: string | null) => void;
     host?: FoliaPlayerHostAdapter;
     theme?: DualTheme;
     isDaylight?: boolean;
     enabled?: boolean;
 }
+
+const PREVIEW_HYDRATION_CONCURRENCY = 3;
 
 const FoliaPlayerContext = createContext<FoliaPlayerContextValue | null>(null);
 
@@ -49,6 +53,8 @@ export function FoliaPlayerProvider({
     onLibraryRootsChange,
     preferences: preferenceOverrides,
     onPreferencesChange,
+    initialActiveTrackId,
+    onActiveTrackChange,
     host = {},
     theme = DEFAULT_FOLIA_DUAL_THEME,
     isDaylight = false,
@@ -56,7 +62,11 @@ export function FoliaPlayerProvider({
 }: FoliaPlayerProviderProps) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
-    const [activeId, setActiveId] = useState<string | null>(tracks[0]?.id ?? null);
+    const [activeId, setActiveId] = useState<string | null>(() => (
+        initialActiveTrackId && tracks.some((track) => track.id === initialActiveTrackId)
+            ? initialActiveTrackId
+            : tracks[0]?.id ?? null
+    ));
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -66,6 +76,8 @@ export function FoliaPlayerProvider({
     const [outputDevices, setOutputDevices] = useState<FoliaOutputDevice[]>([]);
     const autoplayRef = useRef(false);
     const releasesRef = useRef(new Map<string, () => void>());
+    const previewHydratedIdsRef = useRef(new Set<string>());
+    const fullyHydratedIdsRef = useRef(new Set<string>());
     const analyzer = useFoliaAudioAnalyzer(audioRef);
     const preferences = useMemo<FoliaPlayerPreferences>(() => ({
         ...DEFAULT_FOLIA_PLAYER_PREFERENCES,
@@ -76,6 +88,7 @@ export function FoliaPlayerProvider({
         },
     }), [preferenceOverrides]);
     const effectiveTracks = useMemo(() => tracks.map((track) => mergeResolvedTrack(track, resolved[track.id])), [resolved, tracks]);
+    const activeSourceTrack = useMemo(() => tracks.find((track) => track.id === activeId) ?? null, [activeId, tracks]);
     const activeIndex = Math.max(0, effectiveTracks.findIndex((track) => track.id === activeId));
     const activeTrack = effectiveTracks[activeIndex] ?? null;
     const themeStyle = useMemo(() => ({
@@ -91,29 +104,97 @@ export function FoliaPlayerProvider({
         setAudio((current) => current === element ? current : element);
     }, []);
 
-    useEffect(() => {
-        if (!tracks.length) setActiveId(null);
-        else if (!activeId || !tracks.some((track) => track.id === activeId)) setActiveId(tracks[0]?.id ?? null);
-    }, [activeId, tracks]);
+    const commitResolvedTrack = useCallback((trackId: string, value: FoliaResolvedTrack, kind: 'preview' | 'full') => {
+        if (kind === 'preview' && fullyHydratedIdsRef.current.has(trackId)) {
+            value.release?.();
+            return;
+        }
+        if (kind === 'full') fullyHydratedIdsRef.current.add(trackId);
+        else previewHydratedIdsRef.current.add(trackId);
+
+        releasesRef.current.get(trackId)?.();
+        if (value.release) releasesRef.current.set(trackId, value.release);
+        else releasesRef.current.delete(trackId);
+        setResolved((current) => ({ ...current, [trackId]: value }));
+    }, []);
 
     useEffect(() => {
-        if (!enabled || !activeTrack || !host.hydrateTrack || resolved[activeTrack.id]) return;
+        const requestedId = initialActiveTrackId && tracks.some((track) => track.id === initialActiveTrackId)
+            ? initialActiveTrackId
+            : null;
+        const nextId = requestedId
+            ?? (activeId && tracks.some((track) => track.id === activeId) ? activeId : tracks[0]?.id ?? null);
+        if (nextId === activeId) return;
+        setActiveId(nextId);
+        if (!requestedId) onActiveTrackChange?.(nextId);
+    }, [activeId, initialActiveTrackId, onActiveTrackChange, tracks]);
+
+    useEffect(() => {
+        const hydrateTrack = host.hydrateTrack;
+        if (!enabled || !activeSourceTrack || !hydrateTrack || fullyHydratedIdsRef.current.has(activeSourceTrack.id)) return;
         const controller = new AbortController();
         setIsLoading(true);
-        void host.hydrateTrack(activeTrack, controller.signal).then((value) => {
+        void hydrateTrack(activeSourceTrack, controller.signal).then((value) => {
             if (controller.signal.aborted) {
                 value.release?.();
                 return;
             }
-            if (value.release) releasesRef.current.set(activeTrack.id, value.release);
-            setResolved((current) => ({ ...current, [activeTrack.id]: value }));
+            commitResolvedTrack(activeSourceTrack.id, value, 'full');
         }).catch((cause) => {
             if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : String(cause));
         }).finally(() => {
             if (!controller.signal.aborted) setIsLoading(false);
         });
         return () => controller.abort();
-    }, [activeTrack, enabled, host, resolved]);
+    }, [activeSourceTrack, commitResolvedTrack, enabled, host.hydrateTrack]);
+
+    useEffect(() => {
+        const hydrateTrackPreview = host.hydrateTrackPreview;
+        if (!enabled || !hydrateTrackPreview) return;
+        const controller = new AbortController();
+        const candidates = tracks.filter((track) => (
+            track.id !== activeId
+            && !track.coverUrl
+            && !previewHydratedIdsRef.current.has(track.id)
+            && !fullyHydratedIdsRef.current.has(track.id)
+        ));
+        let nextIndex = 0;
+        const hydrateNext = async () => {
+            while (!controller.signal.aborted) {
+                const track = candidates[nextIndex++];
+                if (!track) return;
+                try {
+                    const value = await hydrateTrackPreview(track, controller.signal);
+                    if (controller.signal.aborted) value.release?.();
+                    else commitResolvedTrack(track.id, value, 'preview');
+                } catch {
+                    if (controller.signal.aborted) return;
+                }
+            }
+        };
+        const workerCount = Math.min(PREVIEW_HYDRATION_CONCURRENCY, candidates.length);
+        void Promise.all(Array.from({ length: workerCount }, () => hydrateNext()));
+        return () => controller.abort();
+    }, [activeId, commitResolvedTrack, enabled, host.hydrateTrackPreview, tracks]);
+
+    useEffect(() => {
+        const liveTrackIds = new Set(tracks.map((track) => track.id));
+        for (const [trackId, release] of releasesRef.current) {
+            if (liveTrackIds.has(trackId)) continue;
+            release();
+            releasesRef.current.delete(trackId);
+        }
+        for (const trackId of previewHydratedIdsRef.current) {
+            if (!liveTrackIds.has(trackId)) previewHydratedIdsRef.current.delete(trackId);
+        }
+        for (const trackId of fullyHydratedIdsRef.current) {
+            if (!liveTrackIds.has(trackId)) fullyHydratedIdsRef.current.delete(trackId);
+        }
+        setResolved((current) => {
+            const entries = Object.entries(current).filter(([trackId]) => liveTrackIds.has(trackId));
+            return entries.length === Object.keys(current).length ? current : Object.fromEntries(entries);
+        });
+    }, [tracks]);
 
     useEffect(() => () => {
         for (const release of releasesRef.current.values()) release();
@@ -139,8 +220,10 @@ export function FoliaPlayerProvider({
         autoplayRef.current = autoplay;
         setCurrentTime(0);
         analyzer.motion.currentTime.set(0);
-        setActiveId(tracks[nextIndex]?.id ?? null);
-    }, [analyzer.motion.currentTime, isPlaying, tracks]);
+        const nextId = tracks[nextIndex]?.id ?? null;
+        setActiveId(nextId);
+        onActiveTrackChange?.(nextId);
+    }, [analyzer.motion.currentTime, isPlaying, onActiveTrackChange, tracks]);
 
     const play = useCallback(async () => {
         if (!audioRef.current || !activeTrack) return;
@@ -156,19 +239,20 @@ export function FoliaPlayerProvider({
         onPreferencesChange?.({ ...preferences, ...patch });
     }, [onPreferencesChange, preferences]);
 
-    const scanLibrary = useCallback(async () => {
-        if (!host.scanLibraryRoots || !libraryRoots.length) return;
+    const scanLibraryRoots = useCallback(async (roots: string[]) => {
+        if (!host.scanLibraryRoots || !roots.length) return;
         const controller = new AbortController();
         setIsLoading(true);
         setError(null);
         try {
-            onTracksChange(await host.scanLibraryRoots(libraryRoots, controller.signal));
+            onTracksChange(await host.scanLibraryRoots(roots, controller.signal));
         } catch (cause) {
             setError(cause instanceof Error ? cause.message : String(cause));
         } finally {
             setIsLoading(false);
         }
-    }, [host, libraryRoots, onTracksChange]);
+    }, [host, onTracksChange]);
+    const scanLibrary = useCallback(() => scanLibraryRoots(libraryRoots), [libraryRoots, scanLibraryRoots]);
 
     const actions = useMemo(() => ({
         play,
@@ -189,7 +273,9 @@ export function FoliaPlayerProvider({
         addLibraryRoot: async (root?: string) => {
             const selected = root?.trim() || await host.pickLibraryRoot?.();
             if (!selected || libraryRoots.includes(selected)) return;
-            onLibraryRootsChange?.([...libraryRoots, selected]);
+            const nextRoots = [...libraryRoots, selected];
+            onLibraryRootsChange?.(nextRoots);
+            await scanLibraryRoots(nextRoots);
         },
         removeLibraryRoot: (root: string) => onLibraryRootsChange?.(libraryRoots.filter((candidate) => candidate !== root)),
         setPreferences,
@@ -201,7 +287,7 @@ export function FoliaPlayerProvider({
                 label: device.label || `Output ${index + 1}`,
             })));
         },
-    }), [analyzer.motion.currentTime, duration, host, libraryRoots, next, onLibraryRootsChange, onTracksChange, pause, play, previous, scanLibrary, selectTrack, setPreferences, tracks]);
+    }), [analyzer.motion.currentTime, duration, host, libraryRoots, next, onLibraryRootsChange, onTracksChange, pause, play, previous, scanLibrary, scanLibraryRoots, selectTrack, setPreferences, tracks]);
 
     const lines = activeTrack?.lyrics?.lines ?? [];
     const lyric = currentLyricLine(lines, currentTime);

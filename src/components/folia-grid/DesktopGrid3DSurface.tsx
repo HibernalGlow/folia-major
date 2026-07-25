@@ -129,7 +129,7 @@ export const DesktopGrid3DSurface: React.FC<DesktopGrid3DSurfaceProps> = ({
     return (
         <div className="w-full h-full min-h-0 flex flex-col justify-center relative">
             {!isLoading && (
-                <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10">
+                <div data-folia-grid-controls="map" className="absolute top-2 left-1/2 -translate-x-1/2 z-20">
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -147,7 +147,7 @@ export const DesktopGrid3DSurface: React.FC<DesktopGrid3DSurfaceProps> = ({
             )}
 
             {(actions.length > 0 || tabs.length > 0) && (
-                <div className="absolute top-2 right-4 z-10 flex max-w-[min(44rem,calc(50%-7rem))] flex-wrap items-center justify-end gap-2">
+                <div data-folia-grid-controls="actions" className="absolute top-2 right-4 z-20 flex max-w-[min(44rem,calc(50%-7rem))] flex-wrap items-center justify-end gap-2">
                     <AnimatePresence mode="wait">
                         {tabsExpanded ? (
                             <motion.div

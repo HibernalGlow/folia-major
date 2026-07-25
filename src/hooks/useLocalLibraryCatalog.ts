@@ -13,7 +13,10 @@ export interface LocalLibraryCatalogSnapshot {
   reload: () => Promise<void>;
 }
 
-export const useLocalLibraryCatalog = (refreshKey: unknown): LocalLibraryCatalogSnapshot => {
+export const useLocalLibraryCatalog = (
+  refreshKey: unknown,
+  { enabled = true }: { enabled?: boolean } = {},
+): LocalLibraryCatalogSnapshot => {
   const [catalog, setCatalog] = useState<Omit<LocalLibraryCatalogSnapshot, 'reload'>>({
     entities: [],
     assignments: [],
@@ -21,15 +24,17 @@ export const useLocalLibraryCatalog = (refreshKey: unknown): LocalLibraryCatalog
   });
 
   const reload = useCallback(async () => {
+    if (!enabled) return;
     await ensureLocalLibraryInitialized();
     const [entities, assignments] = await Promise.all([
       getLocalLibraryEntities(),
       getLocalLibraryAssignments(),
     ]);
     setCatalog({ entities, assignments, ready: true });
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     void (async () => {
       await ensureLocalLibraryInitialized();
@@ -42,7 +47,7 @@ export const useLocalLibraryCatalog = (refreshKey: unknown): LocalLibraryCatalog
     return () => {
       cancelled = true;
     };
-  }, [refreshKey, reload]);
+  }, [enabled, refreshKey, reload]);
 
   return useMemo(() => ({ ...catalog, reload }), [catalog, reload]);
 };

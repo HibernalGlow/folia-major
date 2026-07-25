@@ -1,10 +1,12 @@
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
+import { createInstance } from 'i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import en from './locales/en.ts';
 import zhCN from './locales/zh-CN.ts';
 import ind from './locales/in.ts';
 import { resolveMissingTranslation } from './missingTranslation';
+
+// Keep Folia's standalone translations isolated from embedding host applications.
+const i18n = createInstance();
 
 /*
  * Hardcoded Chinese fallback dictionary.
@@ -83,7 +85,6 @@ const detectSystemLanguage = (): Exclude<AppLanguagePreference, 'system'> => {
 
 i18n
   .use(LanguageDetector)
-  .use(initReactI18next)
   .init({
     resources: {
       en: {

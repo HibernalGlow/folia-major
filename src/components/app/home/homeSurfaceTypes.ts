@@ -13,6 +13,7 @@ import type {
 } from '../../../types';
 import type { MediaId, ProviderCollection, ProviderUser } from '../../../types/onlineMusic';
 import type { NavidromeSong, NavidromeViewSelection } from '../../../types/navidrome';
+import type { GridViewSourceActions } from '../../GridView';
 
 // src/components/app/home/homeSurfaceTypes.ts
 
@@ -45,6 +46,11 @@ export interface HomeSurfaceProps {
     localLibraryCatalog: LocalLibraryCatalogSnapshot;
     localPlaylists: LocalPlaylist[];
     onRefreshLocalSongs: () => void;
+    onImportLocalFolder?: () => Promise<void> | void;
+    onRefreshLocalFolders?: () => Promise<void> | void;
+    localSourceActions?: GridViewSourceActions['local'];
+    localOnly?: boolean;
+    brandLabel?: string;
     onPlayLocalSong: (song: LocalSong, queue?: LocalSong[]) => void;
     onAddLocalSongToQueue?: (song: LocalSong) => void;
     focusedPlaylistIndex?: number;
@@ -74,6 +80,7 @@ export interface HomeSurfaceProps {
     onRegenerateStageToken?: () => Promise<void> | void;
     onClearStageState?: () => Promise<void> | void;
     theme: Theme;
+    isDaylight?: boolean;
     onOpenSettings?: (initialTab?: 'help' | 'options') => void;
     navidromeEnabled?: boolean;
     onPlayAll?: (songs: SongResult[]) => void;

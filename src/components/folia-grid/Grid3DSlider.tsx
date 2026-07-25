@@ -146,9 +146,15 @@ export const Grid3DSlider: React.FC<Grid3DSliderProps> = ({
         && containerSize.width >= 2000
         && containerSize.height >= (hasFloatingPlayer ? 780 : 720);
 
-    const coverSize = useCompactMetrics
-        ? (isDesktopWidth ? 208 : 192)
-        : (isDesktopWidth ? (isUltraDesktop ? 360 : isLargeDesktop ? 312 : 218) : 224);
+    const shortCoverSize = Math.max(
+        96,
+        Math.min(isDesktopWidth ? 168 : 152, Math.floor(containerSize.height * (hasFloatingPlayer ? 0.42 : 0.5))),
+    );
+    const coverSize = isShortLayout
+        ? shortCoverSize
+        : isNarrowLayout
+            ? 192
+            : (isDesktopWidth ? (isUltraDesktop ? 360 : isLargeDesktop ? 312 : 218) : 224);
     const edgePadding = Math.max(0, (containerSize.width - coverSize) / 2);
 
     const safeFocusedIndex = clampFocusedIndex(focusedIndex, items.length);
@@ -494,7 +500,9 @@ export const Grid3DSlider: React.FC<Grid3DSliderProps> = ({
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUpOrLeave}
                 onMouseLeave={handleMouseUpOrLeave}
-                className={`w-full flex items-center overflow-x-auto overflow-y-hidden py-24 custom-scrollbar ${
+                className={`w-full flex items-center overflow-x-auto overflow-y-hidden ${
+                    isShortLayout ? 'py-6' : useCompactMetrics ? 'py-12' : 'py-24'
+                } custom-scrollbar ${
                     isInteractive ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
                 }`}
                 style={{ scrollbarWidth: 'none' }}
@@ -535,6 +543,7 @@ export const Grid3DSlider: React.FC<Grid3DSliderProps> = ({
                             return (
                                 <div
                                     key={item.id}
+                                    data-folia-grid3d-item-id={String(item.id)}
                                     className="shrink-0 cursor-pointer pointer-events-auto select-none"
                                     onClick={() => {
                                         if (!isInteractive || dragDistanceRef.current >= 8) return;

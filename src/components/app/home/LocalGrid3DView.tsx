@@ -6,7 +6,7 @@ import { LocalLibraryGroup, LocalPlaylist, LocalSong, Theme } from '../../../typ
 import { GridViewCollectionDescriptor, createLocalGridViewCollection } from './gridViewCollectionAdapters';
 import { buildLocalGrid3DGroups } from './localGrid3DModel';
 import { useDebouncedFocusSync } from '../../../hooks/useDebouncedFocusSync';
-import { useLocalLibraryCatalog } from '../../../hooks/useLocalLibraryCatalog';
+import { useLocalLibraryCatalog, type LocalLibraryCatalogSnapshot } from '../../../hooks/useLocalLibraryCatalog';
 import { createSafeObjectUrl, isBlob } from '../../../utils/blobGuards';
 
 // src/components/app/home/LocalGrid3DView.tsx
@@ -17,6 +17,7 @@ type LocalRow = 0 | 1 | 2 | 3;
 interface LocalGrid3DViewProps {
     localSongs: LocalSong[];
     localPlaylists: LocalPlaylist[];
+    localLibraryCatalog?: LocalLibraryCatalogSnapshot;
     activeRow: LocalRow;
     setActiveRow: (row: LocalRow) => void;
     focusedFolderIndex: number;
@@ -42,6 +43,7 @@ interface LocalGrid3DViewProps {
 export const LocalGrid3DView: React.FC<LocalGrid3DViewProps> = ({
     localSongs,
     localPlaylists,
+    localLibraryCatalog,
     activeRow,
     setActiveRow,
     focusedFolderIndex,
@@ -64,7 +66,8 @@ export const LocalGrid3DView: React.FC<LocalGrid3DViewProps> = ({
     hasFloatingPlayer = false,
 }) => {
     const { t } = useTranslation();
-    const catalog = useLocalLibraryCatalog(localSongs);
+    const persistedCatalog = useLocalLibraryCatalog(localSongs, { enabled: !localLibraryCatalog });
+    const catalog = localLibraryCatalog ?? persistedCatalog;
     const { groups, coverSourceMap } = useMemo(() => {
         const rawGroups = buildLocalGrid3DGroups(localSongs, localPlaylists, t, catalog.ready ? catalog : undefined);
         const sourceMap = new Map<string, Blob | string | undefined>();

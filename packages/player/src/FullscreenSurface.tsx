@@ -1,32 +1,42 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { ChevronLeft, ChevronRight, Settings2, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useMotionValueEvent } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import FloatingPlayerControls from '../../../src/components/FloatingPlayerControls';
 import VisualizerRenderer from '../../../src/components/visualizer/VisualizerRenderer';
-import { VISUALIZER_REGISTRY } from '../../../src/components/visualizer/registry';
-import { ProgressControl, TransportControls } from './controls';
+import VisualizerShell from '../../../src/components/visualizer/VisualizerShell';
+import { PlayerState } from '../../../src/types';
+import { FoliaI18nScope } from './FoliaI18nScope';
+import { FoliaLocalHomeSurface } from './LocalHomeSurface';
 import { useFoliaPlayer } from './PlayerProvider';
-import { FoliaVisualizerSettings } from './VisualizerSettings';
+import type { FoliaLoopMode, FoliaTrack } from './types';
 
 // packages/player/src/FullscreenSurface.tsx
+// Embeds Folia's original player/home composition around one controlled audio provider.
 
 export interface FoliaFullscreenSurfaceProps {
     className?: string;
     showChrome?: boolean;
+    brandLabel?: string;
 }
 
-export function FoliaFullscreenSurface({ className = '', showChrome = true }: FoliaFullscreenSurfaceProps) {
-    const { t } = useTranslation('folia-player');
+type FoliaFullscreenView = 'home' | 'player';
+
+export function FoliaFullscreenSurface({ className = '', showChrome = true, brandLabel = 'Folia' }: FoliaFullscreenSurfaceProps) {
     const { actions, isDaylight, motion, preferences, resolvedTheme, snapshot } = useFoliaPlayer();
     const [currentLineIndex, setCurrentLineIndex] = useState(-1);
-    const [settingsOpen, setSettingsOpen] = useState(false);
-    const [chromeVisible, setChromeVisible] = useState(true);
-    const hideTimerRef = useRef<number | null>(null);
+    const [currentView, setCurrentView] = useState<FoliaFullscreenView>('home');
     const track = snapshot.activeTrack;
     const lines = track?.lyrics?.lines ?? [];
+    const playerState = snapshot.isPlaying
+        ? PlayerState.PLAYING
+        : track
+            ? PlayerState.PAUSED
+            : PlayerState.IDLE;
     const style = useMemo(() => ({
+        '--bg-color': resolvedTheme.backgroundColor,
         '--text-primary': resolvedTheme.primaryColor,
         '--text-secondary': resolvedTheme.secondaryColor,
+        '--text-accent': resolvedTheme.accentColor,
         '--folia-background': resolvedTheme.backgroundColor,
         '--folia-foreground': resolvedTheme.primaryColor,
         '--folia-accent': resolvedTheme.accentColor,
@@ -39,80 +49,133 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true }: Fo
         setCurrentLineIndex((current) => current === next ? current : next);
     });
 
-    useEffect(() => () => {
-        if (hideTimerRef.current !== null) window.clearTimeout(hideTimerRef.current);
-    }, []);
+    useEffect(() => {
+        setCurrentLineIndex(-1);
+    }, [track?.id]);
 
-    function revealChrome() {
-        if (hideTimerRef.current !== null) window.clearTimeout(hideTimerRef.current);
-        setChromeVisible(true);
-        hideTimerRef.current = window.setTimeout(() => setChromeVisible(false), 1800);
-    }
+    useEffect(() => {
+        if (!track) setCurrentView('home');
+    }, [track]);
 
-    function cycleMode(direction: -1 | 1) {
-        const index = VISUALIZER_REGISTRY.findIndex((entry) => entry.mode === preferences.visualizerMode);
-        const nextIndex = (index + direction + VISUALIZER_REGISTRY.length) % VISUALIZER_REGISTRY.length;
-        actions.setPreferences({ visualizerMode: VISUALIZER_REGISTRY[nextIndex]?.mode ?? 'classic' });
-    }
+    const navigateToHome = useCallback(() => setCurrentView('home'), []);
+    const navigateToPlayer = useCallback(() => setCurrentView('player'), []);
+    const toggleLoop = useCallback(() => {
+        actions.setPreferences({ loopMode: nextLoopMode(preferences.loopMode) });
+    }, [actions, preferences.loopMode]);
 
     return (
-        <section className={`folia-fullscreen ${className}`.trim()} style={style} data-folia-surface="fullscreen" onPointerMove={revealChrome}>
-            {track && lines.length ? (
-                <VisualizerRenderer
-                    mode={preferences.visualizerMode}
-                    currentTime={motion.currentTime}
-                    currentLineIndex={currentLineIndex}
-                    lines={lines}
-                    theme={resolvedTheme}
-                    subtitleTheme={resolvedTheme}
-                    isDaylight={isDaylight}
-                    audioPower={motion.audioPower}
-                    audioBands={motion.audioBands}
-                    songTitle={track.title}
-                    songArtist={track.artist}
-                    songAlbum={track.album}
-                    coverUrl={track.coverUrl}
-                    seed={track.id}
-                    background={preferences.background}
-                    lyricsFontScale={preferences.lyricsFontScale}
-                    subtitleFontScale={preferences.subtitleFontScale}
-                    showHarmonySubtitle={preferences.showHarmonySubtitle}
-                    showSubtitleTranslation={preferences.showSubtitleTranslation}
-                    paused={!snapshot.isPlaying}
-                    visualizerTunings={preferences.visualizerTunings}
-                    onLyricLineSeek={actions.seek}
-                />
-            ) : <FullscreenEmptyState />}
-
-            {showChrome ? (
-                <div className="folia-fullscreen__chrome" data-visible={chromeVisible || settingsOpen}>
-                    <button type="button" className="folia-icon-button" onClick={() => cycleMode(-1)} title={t('remote.previous')} aria-label={t('remote.previous')}><ChevronLeft /></button>
-                    <div className="folia-fullscreen__transport"><TransportControls compact /><ProgressControl showTimes={false} /></div>
-                    <button type="button" className="folia-icon-button" onClick={() => cycleMode(1)} title={t('remote.next')} aria-label={t('remote.next')}><ChevronRight /></button>
-                    <button type="button" className="folia-icon-button" onClick={() => setSettingsOpen(true)} title={t('options.visualizerMode')} aria-label={t('options.visualizerMode')}><Settings2 /></button>
+        <section
+            className={`folia-fullscreen ${className}`.trim()}
+            style={style}
+            data-folia-surface="fullscreen"
+            data-folia-view={currentView}
+            data-folia-active-track-id={track?.id ?? ''}
+        >
+            <FoliaI18nScope>
+                <div
+                    className="absolute inset-0 z-0"
+                    style={{
+                        pointerEvents: currentView === 'player' ? 'auto' : 'none',
+                    }}
+                    aria-hidden={currentView !== 'player'}
+                    data-folia-visualizer-layer
+                    data-folia-visualizer-text={currentView === 'player'}
+                >
+                    {track && lines.length > 0 ? (
+                        <VisualizerRenderer
+                            mode={preferences.visualizerMode}
+                            currentTime={motion.currentTime}
+                            currentLineIndex={currentLineIndex}
+                            lines={lines}
+                            theme={resolvedTheme}
+                            subtitleTheme={resolvedTheme}
+                            isDaylight={isDaylight}
+                            audioPower={motion.audioPower}
+                            audioBands={motion.audioBands}
+                            songTitle={track.title}
+                            songArtist={track.artist}
+                            songAlbum={track.album}
+                            coverUrl={track.coverUrl}
+                            seed={track.id}
+                            background={preferences.background}
+                            lyricsFontScale={preferences.lyricsFontScale}
+                            subtitleFontScale={preferences.subtitleFontScale}
+                            showHarmonySubtitle={preferences.showHarmonySubtitle}
+                            showSubtitleTranslation={preferences.showSubtitleTranslation}
+                            showText={currentView === 'player'}
+                            paused={!snapshot.isPlaying}
+                            visualizerTunings={preferences.visualizerTunings}
+                            onBack={currentView === 'player' ? navigateToHome : undefined}
+                            alwaysShowBackButton={currentView === 'player'}
+                            onLyricLineSeek={actions.seek}
+                        />
+                    ) : (
+                        <VisualizerShell
+                            theme={resolvedTheme}
+                            audioPower={motion.audioPower}
+                            audioBands={motion.audioBands}
+                            sharedProps={{
+                                coverUrl: track?.coverUrl,
+                                isDaylight,
+                                seed: track?.id,
+                                background: preferences.background,
+                                paused: !snapshot.isPlaying,
+                                onBack: currentView === 'player' ? navigateToHome : undefined,
+                                alwaysShowBackButton: currentView === 'player',
+                            }}
+                        >
+                            {currentView === 'player' ? <FullscreenEmptyState track={track} error={snapshot.error} /> : null}
+                        </VisualizerShell>
+                    )}
                 </div>
-            ) : null}
 
-            {settingsOpen ? (
-                <aside className="folia-fullscreen__settings">
-                    <header><strong>{t('options.visualizerMode')}</strong><button type="button" className="folia-icon-button" onClick={() => setSettingsOpen(false)} title={t('remote.close')} aria-label={t('remote.close')}><X /></button></header>
-                    <FoliaVisualizerSettings />
-                </aside>
-            ) : null}
+                <FoliaLocalHomeSurface
+                    visible={currentView === 'home'}
+                    onNavigateToPlayer={navigateToPlayer}
+                    brandLabel={brandLabel}
+                />
+
+                {showChrome && track ? (
+                    <FloatingPlayerControls
+                        currentSong={{ name: track.title }}
+                        playerState={playerState}
+                        currentTime={motion.currentTime}
+                        lyricCurrentTime={motion.currentTime}
+                        duration={snapshot.duration}
+                        loopMode={preferences.loopMode}
+                        currentView={currentView}
+                        audioSrc={track.src}
+                        canTogglePlay
+                        lyrics={track.lyrics ?? null}
+                        onSeek={actions.seek}
+                        onTogglePlay={() => void actions.toggle()}
+                        onToggleLoop={toggleLoop}
+                        onNavigateToPlayer={navigateToPlayer}
+                        primaryColor={resolvedTheme.primaryColor}
+                        secondaryColor={resolvedTheme.secondaryColor}
+                        theme={resolvedTheme}
+                        isDaylight={isDaylight}
+                        controlsDisabled={snapshot.isLoading}
+                    />
+                ) : null}
+            </FoliaI18nScope>
         </section>
     );
 }
 
-function FullscreenEmptyState() {
-    const { t } = useTranslation('folia-player');
-    const { snapshot } = useFoliaPlayer();
+function FullscreenEmptyState({ track, error }: { track: FoliaTrack | null; error: string | null }) {
+    const { t } = useTranslation();
     return (
         <div className="folia-fullscreen__empty">
-            {snapshot.activeTrack?.coverUrl ? <img src={snapshot.activeTrack.coverUrl} alt="" /> : <span>FOLIA</span>}
-            <strong>{snapshot.activeTrack?.title || t('ui.noTrack')}</strong>
-            <small>{snapshot.error || snapshot.activeTrack?.artist || t('playerPackage.localLyricsPlayer')}</small>
+            {track?.coverUrl ? <img src={track.coverUrl} alt="" /> : <span>FOLIA</span>}
+            <strong>{track?.title || t('ui.noTrack')}</strong>
+            <small>{error || track?.artist || t('playerPackage.localLyricsPlayer')}</small>
         </div>
     );
+}
+
+function nextLoopMode(mode: FoliaLoopMode): FoliaLoopMode {
+    return mode === 'off' ? 'all' : mode === 'all' ? 'one' : 'off';
 }
 
 function findCurrentLineIndex(lines: Array<{ startTime: number }>, time: number): number {

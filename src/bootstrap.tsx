@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './i18n/config';
+import { I18nextProvider } from 'react-i18next';
+import i18n from './i18n/config';
 import './index.css';
 import App from './App';
 import RemoteControlApp from './components/remote/RemoteControlApp';
@@ -25,14 +26,16 @@ const isNowPlayingObsSource = isObsBrowserSource && obsSource === 'now-playing';
 const isPlayerCapObsSource = isObsBrowserSource && obsSource === 'playercap';
 root.render(
   <React.StrictMode>
-    {isNowPlayingObsSource
-      ? <ObsNowPlayingSourceApp />
-      : isPlayerCapObsSource
-        ? <ObsPlayerCapSourceApp />
-        : isObsBrowserSource
-          ? <ObsBrowserSourceApp />
-          : searchParams.get('remote') === '1'
-            ? <RemoteControlApp />
-            : <App />}
+    <I18nextProvider i18n={i18n}>
+      {isNowPlayingObsSource
+        ? <ObsNowPlayingSourceApp />
+        : isPlayerCapObsSource
+          ? <ObsPlayerCapSourceApp />
+          : isObsBrowserSource
+            ? <ObsBrowserSourceApp />
+            : searchParams.get('remote') === '1'
+              ? <RemoteControlApp />
+              : <App />}
+    </I18nextProvider>
   </React.StrictMode>
 );

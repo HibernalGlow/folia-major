@@ -12,6 +12,8 @@ export type FoliaPanelTab = 'now' | 'queue' | 'library' | 'settings';
 export interface FoliaUnifiedPanelProps {
     className?: string;
     initialTab?: FoliaPanelTab;
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
     onOpenFullscreen?: () => void;
     extraSettings?: ReactNode;
 }
@@ -20,9 +22,10 @@ export interface FoliaUnifiedPanelProps {
  * The standard Folia player panel, rendered by the upstream component itself.
  * Xiranite deliberately only supplies a controlled playback and storage adapter.
  */
-export function FoliaUnifiedPanel({ className = '', initialTab = 'now' }: FoliaUnifiedPanelProps) {
+export function FoliaUnifiedPanel({ className = '', initialTab = 'now', open, onOpenChange }: FoliaUnifiedPanelProps) {
     const { actions, isDaylight, preferences, resolvedTheme, snapshot, tracks } = useFoliaPlayer();
-    const [isOpen, setIsOpen] = useState(true);
+    const [uncontrolledOpen, setUncontrolledOpen] = useState(true);
+    const isOpen = open ?? uncontrolledOpen;
     const [tab, setTab] = useState<PanelTab>(() => panelTabFor(initialTab));
     const queueScrollRef = useRef<HTMLDivElement>(null);
     const songs = useMemo(() => tracks.map((track, index) => toUpstreamSong(track, snapshot.duration, index)), [snapshot.duration, tracks]);
@@ -48,15 +51,21 @@ export function FoliaUnifiedPanel({ className = '', initialTab = 'now' }: FoliaU
         const index = songs.findIndex((candidate) => candidate.id === song.id);
         if (index >= 0) actions.selectTrack(index, true);
     }, [actions, songs]);
+    const toggleOpen = useCallback(() => {
+        const nextOpen = !isOpen;
+        if (open === undefined) setUncontrolledOpen(nextOpen);
+        onOpenChange?.(nextOpen);
+    }, [isOpen, onOpenChange, open]);
 
     return (
-        <div className={`folia-upstream-panel relative h-full min-h-0 w-full overflow-hidden ${className}`.trim()} data-folia-surface="unified">
+        <div className={`folia-upstream-panel relative h-full min-h-0 w-full overflow-visible rounded-3xl bg-transparent ${className}`.trim()} data-folia-surface="unified">
             <FoliaI18nScope><UpstreamUnifiedPanel
+                embedded
                 playback={{
                     isOpen,
                     currentTab: tab,
                     onTabChange: setTab,
-                    onToggle: () => setIsOpen((current) => !current),
+                    onToggle: toggleOpen,
                     onNavigateHome: noop,
                     onNavigateHomeDirect: noop,
                     coverUrl: snapshot.activeTrack?.coverUrl ?? null,
@@ -106,8 +115,9 @@ export function FoliaUnifiedPanel({ className = '', initialTab = 'now' }: FoliaU
                     onVolumeChange: setVolume,
                     onToggleMute: () => setVolume(preferences.volume > 0 ? 0 : 0.8),
                     showOpenPanelCloseButton: false,
-                    hideToggleButton: true,
+                    hideToggleButton: false,
                     playbackControlsDisabled: !currentSong,
+                    playbackProgress: snapshot.duration > 0 ? snapshot.currentTime / snapshot.duration : 0,
                 }}
                 queue={{
                     playQueue: songs,

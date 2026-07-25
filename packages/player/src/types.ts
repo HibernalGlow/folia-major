@@ -56,6 +56,7 @@ export interface FoliaPlayerPreferences {
 }
 
 export interface FoliaPlayerHostAdapter {
+    hydrateTrackPreview?: (track: FoliaTrack, signal: AbortSignal) => Promise<FoliaResolvedTrack>;
     hydrateTrack?: (track: FoliaTrack, signal: AbortSignal) => Promise<FoliaResolvedTrack>;
     scanLibraryRoots?: (roots: string[], signal: AbortSignal) => Promise<FoliaTrack[]>;
     pickLibraryRoot?: () => Promise<string | null>;

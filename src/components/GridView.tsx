@@ -420,6 +420,7 @@ export const PolaroidCard = React.memo<{
                         <div className="flex items-center gap-1.5 shrink-0">
                             {mode === 'tracks' && !isEditMode && (
                                 <button
+                                    data-folia-grid-play-track-id={String(item.id)}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onSelect();

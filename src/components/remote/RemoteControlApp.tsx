@@ -90,6 +90,13 @@ const emptySnapshot: RemoteControlSnapshot = {
 
 type RemotePanelMode = 'playback' | 'export' | 'transparent-controls';
 
+export interface RemoteControlColors {
+    primaryBackground: string;
+    primaryForeground: string;
+    secondaryBackground: string;
+    secondaryForeground: string;
+}
+
 export interface RemoteControlAppProps {
     snapshot?: RemoteControlSnapshot;
     onCommand?: (command: RemoteControlCommand) => void;
@@ -97,6 +104,7 @@ export interface RemoteControlAppProps {
     className?: string;
     idleLyricsDelayMs?: number;
     theme?: Theme;
+    controlColors?: RemoteControlColors;
 }
 
 const RemoteControlApp: React.FC<RemoteControlAppProps> = ({
@@ -106,6 +114,7 @@ const RemoteControlApp: React.FC<RemoteControlAppProps> = ({
     className = '',
     idleLyricsDelayMs = 800,
     theme,
+    controlColors,
 }) => {
     const { t } = useTranslation();
     const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() => {
@@ -284,6 +293,7 @@ const RemoteControlApp: React.FC<RemoteControlAppProps> = ({
     const artist = snapshot.artist || (snapshot.hasTrack ? 'Unknown artist' : 'No active track');
     const exportState = snapshot.exportState ?? idleVideoExportState();
     const isDaylight = Boolean(snapshot.isDaylight);
+    const embeddedControlColors = embedded ? controlColors : undefined;
 
     const baseColor = theme?.secondaryColor ?? (isDaylight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.35)');
     const activeColor = theme?.primaryColor ?? (isDaylight ? '#1c1917' : '#ffffff');
@@ -672,37 +682,58 @@ const RemoteControlApp: React.FC<RemoteControlAppProps> = ({
                                                                 <div className="flex items-center gap-1.5">
                                                                     <button
                                                                         type="button"
+                                                                        data-folia-remote-control="previous"
                                                                          title={t('remote.previous')}
                                                                         disabled={primaryDisabled || !snapshot.canGoPrevious}
                                                                         onClick={() => dispatchCommand({ type: 'previous' })}
-                                                                        className={`flex h-8 w-8 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${isDaylight
+                                                                        className={`flex h-8 w-8 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${embeddedControlColors
+                                                                            ? 'hover:brightness-110'
+                                                                            : isDaylight
                                                                             ? 'bg-black/5 text-black/60 hover:bg-black/10 hover:text-black'
                                                                             : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
                                                                             }`}
+                                                                        style={embeddedControlColors ? {
+                                                                            backgroundColor: embeddedControlColors.secondaryBackground,
+                                                                            color: embeddedControlColors.secondaryForeground,
+                                                                        } : undefined}
                                                                     >
                                                                         <SkipBack size={16} strokeWidth={2} />
                                                                     </button>
                                                                     <button
                                                                        type="button"
+                                                                       data-folia-remote-control="play-pause"
                                                                         title={isPlaying ? t('remote.pause') : t('remote.play')}
                                                                        disabled={primaryDisabled}
                                                                         onClick={() => dispatchCommand({ type: 'play-pause' })}
-                                                                        className={`flex h-9 w-9 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${isDaylight
+                                                                        className={`flex h-9 w-9 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${embeddedControlColors
+                                                                            ? 'hover:brightness-105'
+                                                                            : isDaylight
                                                                             ? 'bg-zinc-900 text-white hover:bg-zinc-800'
                                                                             : 'bg-white text-zinc-950 hover:bg-white/90'
                                                                             }`}
+                                                                        style={embeddedControlColors ? {
+                                                                            backgroundColor: embeddedControlColors.primaryBackground,
+                                                                            color: embeddedControlColors.primaryForeground,
+                                                                        } : undefined}
                                                                     >
                                                                         {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} className="translate-x-0.5" fill="currentColor" />}
                                                                     </button>
                                                                     <button
                                                                         type="button"
+                                                                        data-folia-remote-control="next"
                                                                          title={t('remote.next')}
                                                                         disabled={primaryDisabled || !snapshot.canGoNext}
                                                                         onClick={() => dispatchCommand({ type: 'next' })}
-                                                                        className={`flex h-8 w-8 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${isDaylight
+                                                                        className={`flex h-8 w-8 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${embeddedControlColors
+                                                                            ? 'hover:brightness-110'
+                                                                            : isDaylight
                                                                             ? 'bg-black/5 text-black/60 hover:bg-black/10 hover:text-black'
                                                                             : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
                                                                             }`}
+                                                                        style={embeddedControlColors ? {
+                                                                            backgroundColor: embeddedControlColors.secondaryBackground,
+                                                                            color: embeddedControlColors.secondaryForeground,
+                                                                        } : undefined}
                                                                     >
                                                                         <SkipForward size={16} strokeWidth={2} />
                                                                     </button>

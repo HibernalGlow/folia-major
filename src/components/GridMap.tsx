@@ -75,6 +75,7 @@ const MapCard = React.memo<{
 
         return (
             <div
+                data-folia-grid-map-item-id={String(item.id)}
                 className={`rounded-xl p-3 flex flex-col items-center border backdrop-blur-md transition-shadow duration-300 shadow-lg theme-polaroid-card ${
                     isPlaylistSelectionDisabled ? 'cursor-default' : 'cursor-pointer hover:shadow-2xl'
                 }`}
@@ -752,6 +753,7 @@ export const GridMap: React.FC<GridMapProps> = ({
 
     return (
         <motion.div
+            data-folia-component="GridMap"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

@@ -78,6 +78,7 @@ type UnifiedPanelPlaybackProps = {
     hideToggleButton?: boolean;
     isStageContext?: boolean;
     playbackControlsDisabled?: boolean;
+    playbackProgress?: number;
     onOpenSettings?: () => void;
     onOpenCommandPalette?: () => void;
     isCommandPaletteOpen?: boolean;
@@ -129,6 +130,7 @@ type UnifiedPanelProps = {
     queue: UnifiedPanelQueueProps;
     library: UnifiedPanelLibraryProps;
     account: UnifiedPanelAccountProps;
+    embedded?: boolean;
 };
 
 const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
@@ -136,6 +138,7 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
     queue,
     library,
     account,
+    embedded = false,
 }) => {
     const { t } = useTranslation();
     const {
@@ -194,6 +197,7 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
         hideToggleButton = false,
         isStageContext = false,
         playbackControlsDisabled = false,
+        playbackProgress = 0,
         onOpenSettings,
         onOpenCommandPalette,
         isCommandPaletteOpen = false,
@@ -626,17 +630,20 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
     return (
         <div
             data-folia-component="UnifiedPanel"
-            className="absolute bottom-8 right-0 z-[60] flex flex-col items-end gap-4 pointer-events-none"
+            data-folia-embedded={embedded || undefined}
+            className={embedded
+                ? 'relative z-[60] flex h-full w-full flex-col pointer-events-none'
+                : 'absolute bottom-8 right-0 z-[60] flex flex-col items-end gap-4 pointer-events-none'}
             onClick={(e) => e.stopPropagation()}
         >
-            <div className="pr-4 md:pr-8">
+            <div className={embedded ? 'h-full w-full' : 'pr-4 md:pr-8'}>
                 <AnimatePresence>
                     {isOpen && (
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9, originY: 1, originX: 1 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            className={`pointer-events-auto w-80 max-h-[calc(100dvh-6rem)] ${glassBg} backdrop-blur-3xl rounded-3xl shadow-2xl flex flex-col mb-16 md:mb-2 overflow-y-auto hide-scrollbar`}
+                            className={`pointer-events-auto ${embedded ? 'h-full w-full max-h-none' : 'w-80 max-h-[calc(100dvh-6rem)] mb-16 md:mb-2'} ${glassBg} backdrop-blur-3xl rounded-3xl shadow-2xl flex flex-col overflow-y-auto hide-scrollbar`}
                             style={{ color: theme.primaryColor }}
                         >
                             <div className="p-5 flex flex-col">
@@ -981,10 +988,42 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
                             : { opacity: 0, x: 20, y: 12, scale: 0.92 }
                         }
                         transition={{ duration: 0.24, ease: 'easeOut' }}
-                        className="pointer-events-auto fixed bottom-8 right-0 z-[60] pr-4 md:pr-8 group w-20 flex justify-end"
+                        className={embedded
+                            ? 'pointer-events-auto absolute inset-0 z-[70] group flex items-center justify-center'
+                            : 'pointer-events-auto fixed bottom-8 right-0 z-[60] pr-4 md:pr-8 group w-20 flex justify-end'}
                     >
                         {/* Wrapper for both track and button to guarantee perfect alignment across browsers */}
                         <div className={`relative w-12 h-12 transition-all duration-300 transform ${toggleButtonMotionClass}`}>
+                            <svg
+                                data-folia-toggle-progress
+                                aria-hidden="true"
+                                viewBox="0 0 56 56"
+                                className="pointer-events-none absolute -inset-1 z-20 size-14 -rotate-90 overflow-visible"
+                            >
+                                <circle
+                                    cx="28"
+                                    cy="28"
+                                    r="25"
+                                    fill="none"
+                                    strokeWidth="2"
+                                    style={{ stroke: theme.secondaryColor, opacity: 0.24 }}
+                                />
+                                <circle
+                                    cx="28"
+                                    cy="28"
+                                    r="25"
+                                    fill="none"
+                                    pathLength="1"
+                                    strokeLinecap="round"
+                                    strokeWidth="2.5"
+                                    style={{
+                                        stroke: theme.accentColor,
+                                        strokeDasharray: 1,
+                                        strokeDashoffset: 1 - Math.min(1, Math.max(0, playbackProgress)),
+                                        transition: 'stroke-dashoffset 180ms linear',
+                                    }}
+                                />
+                            </svg>
                             {/* osu! Slider Track */}
                             <div
                                 style={{

@@ -49,6 +49,10 @@ interface Grid3DProps {
     localLibraryCatalog: LocalLibraryCatalogSnapshot;
     localPlaylists: LocalPlaylist[];
     onRefreshLocalSongs: () => void;
+    onImportLocalFolder?: () => Promise<void> | void;
+    onRefreshLocalFolders?: () => Promise<void> | void;
+    localOnly?: boolean;
+    brandLabel?: string;
     onPlayLocalSong: (song: LocalSong, queue?: LocalSong[]) => void;
     onAddLocalSongToQueue?: (song: LocalSong) => void;
     localMusicState: {
@@ -81,6 +85,7 @@ interface Grid3DProps {
     onPendingNavidromeSelectionHandled?: () => void;
     onSearchCommitted: (query: string, sourceTab: any, replace?: boolean) => void;
     theme: Theme;
+    isDaylight?: boolean;
     onOpenSettings?: (initialTab?: 'help' | 'options') => void;
     navidromeEnabled?: boolean;
     onPlayAll?: (songs: SongResult[]) => void;
@@ -105,6 +110,10 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
         localLibraryCatalog,
         localPlaylists,
         onRefreshLocalSongs,
+        onImportLocalFolder,
+        onRefreshLocalFolders,
+        localOnly = false,
+        brandLabel = 'Folia',
         localMusicState,
         setLocalMusicState,
         navidromeFocusedAlbumIndex = 0,
@@ -113,6 +122,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
         onPendingNavidromeSelectionHandled,
         onSearchCommitted,
         theme,
+        isDaylight: hostIsDaylight,
         onOpenSettings,
         navidromeEnabled = false,
         onOpenGridView,
@@ -124,7 +134,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
 
     const { t } = useTranslation();
     const {
-        isDaylight,
+        isDaylight: storedIsDaylight,
         showHomeTabPlaylist,
         showHomeTabRadio,
         showHomeTabAlbums,
@@ -137,7 +147,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
         showHomeTabLocal: state.showHomeTabLocal,
     })));
     const {
-        homeViewTab,
+        homeViewTab: storedHomeViewTab,
         setHomeViewTab,
         searchQuery,
         setSearchQuery,
@@ -151,6 +161,8 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
         isSearching: state.isSearching,
         submitSearch: state.submitSearch,
     })));
+    const isDaylight = hostIsDaylight ?? storedIsDaylight;
+    const homeViewTab = localOnly ? 'local' : storedHomeViewTab;
 
     const isOnlineTab = homeViewTab === 'playlist' || homeViewTab === 'albums' || homeViewTab === 'radio';
     const activeProviderId = onlineProviderPlatform?.activeProviderId || 'netease';
@@ -453,6 +465,10 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
 
         setIsLocalImporting(true);
         try {
+            if (onImportLocalFolder) {
+                await onImportLocalFolder();
+                return;
+            }
             const importedSongs = await importFolder();
             if (importedSongs.length > 0) {
                 onRefreshLocalSongs();
@@ -470,6 +486,10 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
 
         setIsLocalRefreshing(true);
         try {
+            if (onRefreshLocalFolders) {
+                await onRefreshLocalFolders();
+                return;
+            }
             const importedSongs = await resyncAllFolders();
             if (importedSongs && importedSongs.length > 0) {
                 onRefreshLocalSongs();
@@ -515,31 +535,35 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
     const bottomPadding = currentTrack ? 'pb-28 md:pb-32' : '';
 
     return (
-        <div className={`relative w-full h-full flex flex-col font-sans overflow-hidden ${mainBg} pointer-events-auto backdrop-blur-sm ${bottomPadding}`}>
+        <div data-folia-component="Grid3D" className={`relative w-full h-full flex flex-col font-sans overflow-hidden ${mainBg} pointer-events-auto backdrop-blur-sm ${bottomPadding}`}>
 
             {/* Main Header Container (Fades out when sliding/interacting) */}
             <div className="transition-opacity duration-300 ease-in-out z-20 opacity-100 select-none">
-                <div className="grid grid-cols-2 md:grid-cols-3 items-center w-full max-w-7xl mx-auto p-4 md:p-8 gap-y-4 md:gap-y-0">
+                <div className={`grid grid-cols-2 md:grid-cols-3 items-center w-full max-w-7xl mx-auto gap-y-4 md:gap-y-0 ${
+                    localOnly ? 'px-4 pt-2 pb-20 md:px-8 md:pt-4 md:pb-20' : 'p-4 md:p-8'
+                }`}>
                     {/* Left title and settings */}
                     <div className="flex items-center justify-start order-1 md:order-none">
-                        <h1 className="text-2xl font-bold tracking-tight opacity-90 flex items-center gap-3">
-                            Folia
+                        <h1 data-folia-home-brand className="text-2xl font-bold tracking-tight opacity-90 flex items-center gap-3">
+                            {brandLabel}
                         </h1>
-                        <button
-                            onClick={() => onOpenSettings?.('help')}
-                            className={`relative flex items-center gap-1.5 p-2 rounded-full hover:bg-white/10 transition-all ml-4 ${showUpdateIndicator
-                                    ? 'opacity-90 hover:opacity-100'
-                                    : 'opacity-40 hover:opacity-100'
-                                }`}
-                            title="Help & Options"
-                        >
-                            <Settings size={20} style={{ color: 'var(--text-primary)' }} />
-                            {showUpdateIndicator && (
-                                <span className="text-[10px] font-medium text-zinc-800 dark:text-zinc-200 opacity-80 whitespace-nowrap bg-zinc-200/50 dark:bg-white/10 px-2 py-0.5 rounded-md">
-                                    {t('options.updateAvailable')}
-                                </span>
-                            )}
-                        </button>
+                        {onOpenSettings && (
+                            <button
+                                onClick={() => onOpenSettings('help')}
+                                className={`relative flex items-center gap-1.5 p-2 rounded-full hover:bg-white/10 transition-all ml-4 ${showUpdateIndicator
+                                        ? 'opacity-90 hover:opacity-100'
+                                        : 'opacity-40 hover:opacity-100'
+                                    }`}
+                                title="Help & Options"
+                            >
+                                <Settings size={20} style={{ color: 'var(--text-primary)' }} />
+                                {showUpdateIndicator && (
+                                    <span className="text-[10px] font-medium text-zinc-800 dark:text-zinc-200 opacity-80 whitespace-nowrap bg-zinc-200/50 dark:bg-white/10 px-2 py-0.5 rounded-md">
+                                        {t('options.updateAvailable')}
+                                    </span>
+                                )}
+                            </button>
+                        )}
                         {scanProgress?.active && (
                             <div
                                 className="relative ml-3"
@@ -601,19 +625,21 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
 
                     {/* Center Tab Switcher */}
                     <div className="flex justify-center order-3 md:order-none col-span-2 md:col-span-1">
-                        <div className={`relative ${navPillBg} backdrop-blur-md p-1 rounded-full scale-90 md:scale-100 origin-center`}>
-                            <div className="inline-flex items-center gap-0">
-                                {[
+                        {!localOnly && (
+                            <div className={`relative ${navPillBg} backdrop-blur-md p-1 rounded-full scale-90 md:scale-100 origin-center`}>
+                                <div className="inline-flex items-center gap-0">
+                                    {[
                                     ...(showHomeTabPlaylist ? [{ key: 'playlist', label: t('home.playlists') }] : []),
                                     ...(showHomeTabRadio ? [{ key: 'radio', label: t('home.radio') }] : []),
                                     ...(showHomeTabAlbums ? [{ key: 'albums', label: t('home.albums') }] : []),
                                     ...(showHomeTabLocal ? [{ key: 'local', label: t('localMusic.folder') }] : []),
                                     ...(navidromeEnabled ? [{ key: 'navidrome', label: t('navidrome.title') || 'Navidrome' }] : []),
-                                ].map((tab) => {
+                                    ].map((tab) => {
                                     const isActive = homeViewTab === tab.key;
                                     return (
                                         <button
                                             key={tab.key}
+                                            data-folia-home-tab={tab.key}
                                             onClick={() => setHomeViewTab(tab.key as any)}
                                             className={`relative inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition-colors duration-300 whitespace-nowrap ${isActive ? activeTabBg : navPillInactiveText}`}
                                         >
@@ -627,22 +653,23 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                                             <span className="relative z-10">{tab.label}</span>
                                         </button>
                                     );
-                                })}
-                                {stageEnabled && (
-                                    <button
-                                        onClick={() => onOpenStagePlayer?.()}
-                                        data-stage-active={stageIsActive ? 'true' : 'false'}
-                                        className={`relative inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition-colors duration-300 whitespace-nowrap ${navPillInactiveText}`}
-                                    >
-                                        <span className="relative z-10">{t('home.stage')}</span>
-                                    </button>
-                                )}
+                                    })}
+                                    {stageEnabled && (
+                                        <button
+                                            onClick={() => onOpenStagePlayer?.()}
+                                            data-stage-active={stageIsActive ? 'true' : 'false'}
+                                            className={`relative inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs md:text-sm font-medium transition-colors duration-300 whitespace-nowrap ${navPillInactiveText}`}
+                                        >
+                                            <span className="relative z-10">{t('home.stage')}</span>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Right Search Bar */}
-                    <div className="flex justify-end order-2 md:order-none">
+                    <div className={`flex justify-end order-2 md:order-none ${localOnly ? '-translate-y-3' : ''}`}>
                         <form onSubmit={handleSearch} className="relative w-full md:w-56 transition-all focus-within:md:w-72">
                             {isSearchingActive ? (
                                 <Loader2 className="absolute left-3 top-1/2 w-4 h-4 animate-spin opacity-40 -mt-2" />
@@ -715,6 +742,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                         <LocalGrid3DView
                             localSongs={localSongs}
                             localPlaylists={localPlaylists}
+                            localLibraryCatalog={localLibraryCatalog}
                             activeRow={localMusicState.activeRow}
                             setActiveRow={(row) => setLocalMusicState(prev => ({ ...prev, activeRow: row }))}
                             focusedFolderIndex={localMusicState.focusedFolderIndex}

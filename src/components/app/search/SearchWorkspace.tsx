@@ -26,6 +26,7 @@ type SearchWorkspaceProps = {
     onAddTrackToQueue: (track: UnifiedSong) => void;
     onOpenArtist: (track: UnifiedSong, artistName: string, artistId?: MediaId, entityId?: string) => void;
     onOpenAlbum: (track: UnifiedSong, albumName: string, albumId?: MediaId, entityId?: string) => void;
+    sourcesOverride?: SearchSource[];
 };
 
 const SearchWorkspace: React.FC<SearchWorkspaceProps> = ({
@@ -38,6 +39,7 @@ const SearchWorkspace: React.FC<SearchWorkspaceProps> = ({
     onAddTrackToQueue,
     onOpenArtist,
     onOpenAlbum,
+    sourcesOverride,
 }) => {
     const { t } = useTranslation();
     const {
@@ -67,7 +69,10 @@ const SearchWorkspace: React.FC<SearchWorkspaceProps> = ({
     })));
     const results = searchResults || [];
     const activeOnlineProviderId = useOnlineProviderAccountStore(state => state.activeProviderId);
-    const sources = useMemo<SearchSource[]>(() => [activeOnlineProviderId, 'local', 'navidrome'], [activeOnlineProviderId]);
+    const sources = useMemo<SearchSource[]>(
+        () => sourcesOverride ?? [activeOnlineProviderId, 'local', 'navidrome'],
+        [activeOnlineProviderId, sourcesOverride],
+    );
     const hasCollection = useCollectionNavigationStore(state => Boolean(state.snapshot?.stack.length));
     const getSourceLabel = (source: SearchSource) => {
         if (source === 'local') return t('search.sourceLocal');
@@ -91,6 +96,7 @@ const SearchWorkspace: React.FC<SearchWorkspaceProps> = ({
         <AnimatePresence>
             {isSearchOpen && (
                 <motion.section
+                    data-folia-component="SearchWorkspace"
                     initial={{ opacity: 0, y: 28 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 28 }}

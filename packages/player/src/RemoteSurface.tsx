@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import RemoteControlApp from '../../../src/components/remote/RemoteControlApp';
+import RemoteControlApp, { type RemoteControlColors } from '../../../src/components/remote/RemoteControlApp';
 import { PlayerState } from '../../../src/types';
 import type { RemoteControlCommand, RemoteControlSnapshot } from '../../../src/types/remoteControl';
 import { idleVideoExportState } from '../../../src/types/videoExport';
@@ -10,6 +10,7 @@ export interface FoliaRemoteSurfaceProps {
     className?: string;
     compact?: boolean;
     idleLyricsDelayMs?: number;
+    controlColors?: RemoteControlColors;
 }
 
 /** Folia's original Remote Control card, driven by the host player context. */
@@ -17,6 +18,7 @@ export function FoliaRemoteSurface({
     className = '',
     compact = false,
     idleLyricsDelayMs = 800,
+    controlColors,
 }: FoliaRemoteSurfaceProps) {
     const { actions, isDaylight, resolvedTheme, snapshot, tracks } = useFoliaPlayer();
     const track = snapshot.activeTrack;
@@ -84,6 +86,7 @@ export function FoliaRemoteSurface({
                     onCommand={handleCommand}
                     idleLyricsDelayMs={idleLyricsDelayMs}
                     theme={resolvedTheme}
+                    controlColors={controlColors}
                 />
             </FoliaI18nScope>
         </section>

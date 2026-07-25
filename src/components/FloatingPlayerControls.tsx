@@ -164,6 +164,7 @@ const FloatingPlayerControls: React.FC<FloatingPlayerControlsProps> = ({
                     }}
                 >
                     <motion.div
+                        data-folia-player-entry
                         layout
                         transition={{ layout: CONTROL_LAYOUT_SPRING }}
                         onClick={handleClick}
