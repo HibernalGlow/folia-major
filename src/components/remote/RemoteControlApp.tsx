@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { ChevronLeft, Heart, Lock, LockOpen, Pause, Pin, PinOff, Play, SkipBack, SkipForward, Video, MirrorRectangular, X, Check, Sliders, Palette } from 'lucide-react';
+import { ChevronLeft, Heart, Lock, LockOpen, Pin, PinOff, Video, MirrorRectangular, X, Check, Sliders, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlayerState, type Theme } from '../../types';
 import RemoteVideoExportPanel from './RemoteVideoExportPanel';
 import RemoteLyricOverlay from './RemoteLyricOverlay';
+import { RemoteSeekBar, RemoteTransportButtons, type RemoteControlColors } from './RemoteTransportControls';
 import type { RemoteControlCommand, RemoteControlSnapshot } from '../../types/remoteControl';
 import {
     createVideoExportPresets,
@@ -90,12 +91,7 @@ const emptySnapshot: RemoteControlSnapshot = {
 
 type RemotePanelMode = 'playback' | 'export' | 'transparent-controls';
 
-export interface RemoteControlColors {
-    primaryBackground: string;
-    primaryForeground: string;
-    secondaryBackground: string;
-    secondaryForeground: string;
-}
+export type { RemoteControlColors } from './RemoteTransportControls';
 
 export interface RemoteControlAppProps {
     snapshot?: RemoteControlSnapshot;
@@ -287,7 +283,7 @@ const RemoteControlApp: React.FC<RemoteControlAppProps> = ({
     const currentTime = pendingSeek ?? snapshot.currentTime;
     const duration = Number.isFinite(snapshot.duration) && snapshot.duration > 0 ? snapshot.duration : 0;
     const progressValue = duration > 0 ? Math.max(0, Math.min(currentTime, duration)) : 0;
-    const isPlaying = snapshot.playerState === PlayerState.PLAYING;
+
     const primaryDisabled = snapshot.controlsDisabled || !snapshot.hasTrack;
     const title = snapshot.title || 'Folia';
     const artist = snapshot.artist || (snapshot.hasTrack ? 'Unknown artist' : 'No active track');
@@ -312,8 +308,6 @@ const RemoteControlApp: React.FC<RemoteControlAppProps> = ({
 
     const noDragStyle = { WebkitAppRegion: 'no-drag' } as React.CSSProperties;
     const dragStyle = { WebkitAppRegion: 'drag' } as React.CSSProperties;
-
-    const progressPercent = duration > 0 ? (progressValue / duration) * 100 : 0;
 
     useEffect(() => {
         if (embedded) return;
@@ -605,54 +599,33 @@ const RemoteControlApp: React.FC<RemoteControlAppProps> = ({
                                             transition={{ duration: 0.15 }}
                                             className="w-full flex flex-col justify-between h-[70px]"
                                         >
-                                            {/* Progress Slider (Always Visible) */}
-                                            <div className="w-full">
-                                                <div className="relative w-full h-5 flex items-center" style={noDragStyle}>
-                                                    {/* Visible Track Background */}
-                                                    <div className={`w-full h-[3px] rounded-full transition-colors overflow-hidden ${isDaylight ? 'bg-black/10' : 'bg-white/15'
-                                                        }`}>
-                                                        {/* Visible Progress Fill */}
-                                                        <div
-                                                            className={`h-full rounded-full transition-all duration-75 ${isDaylight ? 'bg-[#1c1917]' : 'bg-white'
-                                                                }`}
-                                                            style={{ width: `${progressPercent}%` }}
-                                                        />
-                                                    </div>
-
-                                                    {/* Transparent Large Hitbox Input Range */}
-                                                    <input
-                                                        aria-label="Seek"
-                                                        type="range"
-                                                        min={0}
-                                                        max={duration || 1}
-                                                        step={0.1}
-                                                        value={progressValue}
-                                                        disabled={primaryDisabled || duration <= 0}
-                                                        onChange={(event) => setPendingSeek(Number(event.currentTarget.value))}
-                                                        onPointerDown={() => {
-                                                            isDraggingRef.current = true;
-                                                        }}
-                                                        onPointerCancel={() => {
-                                                            isDraggingRef.current = false;
-                                                        }}
-                                                        onPointerUp={() => {
-                                                            isDraggingRef.current = false;
-                                                            lastSeekTimeRef.current = Date.now();
-                                                            if (pendingSeek !== null) {
-                                                                dispatchCommand({ type: 'seek', time: pendingSeek });
-                                                            }
-                                                        }}
-                                                        onKeyUp={(event) => {
-                                                            if (event.key === 'Enter' && pendingSeek !== null) {
-                                                                isDraggingRef.current = false;
-                                                                lastSeekTimeRef.current = Date.now();
-                                                                dispatchCommand({ type: 'seek', time: pendingSeek });
-                                                            }
-                                                        }}
-                                                        className="absolute inset-x-0 h-5 w-full appearance-none cursor-pointer bg-transparent opacity-0 z-10 disabled:cursor-not-allowed [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-transparent [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-transparent"
-                                                    />
-                                                </div>
-                                            </div>
+                                            <RemoteSeekBar
+                                                value={progressValue}
+                                                duration={duration}
+                                                disabled={primaryDisabled}
+                                                isDaylight={isDaylight}
+                                                onChange={setPendingSeek}
+                                                onPointerDown={() => {
+                                                    isDraggingRef.current = true;
+                                                }}
+                                                onPointerCancel={() => {
+                                                    isDraggingRef.current = false;
+                                                }}
+                                                onPointerUp={() => {
+                                                    isDraggingRef.current = false;
+                                                    lastSeekTimeRef.current = Date.now();
+                                                    if (pendingSeek !== null) {
+                                                        dispatchCommand({ type: 'seek', time: pendingSeek });
+                                                    }
+                                                }}
+                                                onCommitFromKeyboard={() => {
+                                                    if (pendingSeek !== null) {
+                                                        isDraggingRef.current = false;
+                                                        lastSeekTimeRef.current = Date.now();
+                                                        dispatchCommand({ type: 'seek', time: pendingSeek });
+                                                    }
+                                                }}
+                                            />
 
                                             {/* Toggle area for controls+timestamps or lyrics */}
                                             <div
@@ -679,65 +652,17 @@ const RemoteControlApp: React.FC<RemoteControlAppProps> = ({
 
                                                             {/* Playback Actions */}
                                                             <div className="flex w-full items-center justify-between">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <button
-                                                                        type="button"
-                                                                        data-folia-remote-control="previous"
-                                                                         title={t('remote.previous')}
-                                                                        disabled={primaryDisabled || !snapshot.canGoPrevious}
-                                                                        onClick={() => dispatchCommand({ type: 'previous' })}
-                                                                        className={`flex h-8 w-8 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${embeddedControlColors
-                                                                            ? 'hover:brightness-110'
-                                                                            : isDaylight
-                                                                            ? 'bg-black/5 text-black/60 hover:bg-black/10 hover:text-black'
-                                                                            : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
-                                                                            }`}
-                                                                        style={embeddedControlColors ? {
-                                                                            backgroundColor: embeddedControlColors.secondaryBackground,
-                                                                            color: embeddedControlColors.secondaryForeground,
-                                                                        } : undefined}
-                                                                    >
-                                                                        <SkipBack size={16} strokeWidth={2} />
-                                                                    </button>
-                                                                    <button
-                                                                       type="button"
-                                                                       data-folia-remote-control="play-pause"
-                                                                        title={isPlaying ? t('remote.pause') : t('remote.play')}
-                                                                       disabled={primaryDisabled}
-                                                                        onClick={() => dispatchCommand({ type: 'play-pause' })}
-                                                                        className={`flex h-9 w-9 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${embeddedControlColors
-                                                                            ? 'hover:brightness-105'
-                                                                            : isDaylight
-                                                                            ? 'bg-zinc-900 text-white hover:bg-zinc-800'
-                                                                            : 'bg-white text-zinc-950 hover:bg-white/90'
-                                                                            }`}
-                                                                        style={embeddedControlColors ? {
-                                                                            backgroundColor: embeddedControlColors.primaryBackground,
-                                                                            color: embeddedControlColors.primaryForeground,
-                                                                        } : undefined}
-                                                                    >
-                                                                        {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} className="translate-x-0.5" fill="currentColor" />}
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        data-folia-remote-control="next"
-                                                                         title={t('remote.next')}
-                                                                        disabled={primaryDisabled || !snapshot.canGoNext}
-                                                                        onClick={() => dispatchCommand({ type: 'next' })}
-                                                                        className={`flex h-8 w-8 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${embeddedControlColors
-                                                                            ? 'hover:brightness-110'
-                                                                            : isDaylight
-                                                                            ? 'bg-black/5 text-black/60 hover:bg-black/10 hover:text-black'
-                                                                            : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
-                                                                            }`}
-                                                                        style={embeddedControlColors ? {
-                                                                            backgroundColor: embeddedControlColors.secondaryBackground,
-                                                                            color: embeddedControlColors.secondaryForeground,
-                                                                        } : undefined}
-                                                                    >
-                                                                        <SkipForward size={16} strokeWidth={2} />
-                                                                    </button>
-                                                                </div>
+                                                                <RemoteTransportButtons
+                                                                    playerState={snapshot.playerState}
+                                                                    disabled={primaryDisabled}
+                                                                    canGoPrevious={snapshot.canGoPrevious}
+                                                                    canGoNext={snapshot.canGoNext}
+                                                                    isDaylight={isDaylight}
+                                                                    onPrevious={() => dispatchCommand({ type: 'previous' })}
+                                                                    onTogglePlay={() => dispatchCommand({ type: 'play-pause' })}
+                                                                    onNext={() => dispatchCommand({ type: 'next' })}
+                                                                    controlColors={embeddedControlColors}
+                                                                />
                                                                 {!embedded && <div className="flex items-center gap-1.5">
                                                                     <button
                                                                         type="button"

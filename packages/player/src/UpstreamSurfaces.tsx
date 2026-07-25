@@ -137,6 +137,15 @@ export function FoliaUnifiedPanel({
                     hideToggleButton,
                     playbackControlsDisabled: !currentSong,
                     playbackProgress: snapshot.duration > 0 ? snapshot.currentTime / snapshot.duration : 0,
+                    coverPlayback: {
+                        currentTime: snapshot.currentTime,
+                        duration: snapshot.duration,
+                        lyrics: snapshot.activeTrack?.lyrics ?? null,
+                        lyricOffsetMs: 0,
+                        canGoPrevious: tracks.length > 1,
+                        canGoNext: tracks.length > 1,
+                        onSeek: actions.seek,
+                    },
                     onOpenSettings: () => setSettingsOpen(true),
                 }}
                 queue={{

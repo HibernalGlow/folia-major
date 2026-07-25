@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Pause, Repeat, Repeat1, Repeat2 as RepeatOff, Shuffle, ChartBar } from 'lucide-react';
+import { Play, Pause, ChartBar } from 'lucide-react';
 import { MotionValue } from 'framer-motion';
 import ProgressBar from './ProgressBar';
 import { PlayerState, LyricData, Theme } from '../types';
 import LyricsTimelineModal from './modal/LyricsTimelineModal';
+import PlaybackOrderButton from './PlaybackOrderButton';
 
 const CONTROL_LAYOUT_SPRING = {
     type: 'spring' as const,
@@ -302,24 +303,14 @@ const ExpandedView: React.FC<ExpandedViewProps> = ({
             </button>
 
             <div className="contents sm:col-start-3 sm:row-start-1 sm:row-span-2 sm:flex sm:items-center sm:gap-1">
-                <button
-                    data-folia-loop-mode={loopMode}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleLoop();
-                    }}
+                <PlaybackOrderButton
+                    loopMode={loopMode}
+                    onToggle={onToggleLoop}
                     disabled={controlsDisabled}
                     className={`col-start-1 row-start-2 justify-self-end rounded-full p-2 transition-colors sm:justify-self-auto ${loopMode !== 'off' ? (isDaylight ? 'bg-black/10 text-black' : 'bg-white/20') : 'opacity-40 hover:opacity-100'} ${controlsDisabled ? 'cursor-not-allowed opacity-35' : ''}`}
-                    style={{ color: primaryColor }}
-                >
-                    {loopMode === 'off'
-                        ? <RepeatOff size={20} className="sm:h-[18px] sm:w-[18px]" />
-                        : loopMode === 'one'
-                            ? <Repeat1 size={20} className="sm:h-[18px] sm:w-[18px]" />
-                            : loopMode === 'random'
-                                ? <Shuffle size={20} className="sm:h-[18px] sm:w-[18px]" />
-                                : <Repeat size={20} className="sm:h-[18px] sm:w-[18px]" />}
-                </button>
+                    color={primaryColor}
+                    iconClassName="sm:h-[18px] sm:w-[18px]"
+                />
 
                 <button
                     onClick={(e) => {

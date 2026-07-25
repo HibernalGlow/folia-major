@@ -1,9 +1,32 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { Album, Artist, SongResult, UnifiedSong } from '../../types';
+import { Album, Artist, PlayerState, SongResult, UnifiedSong, type LyricData, type Theme } from '../../types';
 import { canResolveSongCatalogRef } from '../../services/onlineMusic/catalogRefs';
 import { getProviderSongMetadata, getProviderSongPageUrl } from '../../services/onlineMusic/songMetadata';
+import PlaybackOrderButton, { type PlaybackOrder } from '../PlaybackOrderButton';
+import RemoteLyricOverlay from '../remote/RemoteLyricOverlay';
+import RemoteTransportControls from '../remote/RemoteTransportControls';
+
+export interface CoverTabPlayback {
+    currentTime: number;
+    duration: number;
+    playerState: PlayerState;
+    lyrics: LyricData | null;
+    lyricOffsetMs?: number;
+    loopMode: PlaybackOrder;
+    hasTrack: boolean;
+    controlsDisabled: boolean;
+    canGoPrevious: boolean;
+    canGoNext: boolean;
+    isDaylight: boolean;
+    theme: Theme;
+    onPrevious: () => void;
+    onTogglePlay: () => void;
+    onNext: () => void;
+    onSeek: (time: number) => void;
+    onToggleLoop: () => void;
+}
 
 interface CoverTabProps {
     currentSong: SongResult | null;
@@ -14,6 +37,7 @@ interface CoverTabProps {
     onOpenCurrentNavidromeAlbum: () => void;
     onOpenCurrentNavidromeArtist: () => void;
     onCopySongInfoSuccess: () => void;
+    playback?: CoverTabPlayback;
 }
 
 const CoverTab: React.FC<CoverTabProps> = ({
@@ -25,6 +49,7 @@ const CoverTab: React.FC<CoverTabProps> = ({
     onOpenCurrentNavidromeAlbum,
     onOpenCurrentNavidromeArtist,
     onCopySongInfoSuccess,
+    playback,
 }) => {
     const { t } = useTranslation();
     const isLocalSong = Boolean(currentSong && (((currentSong as any).isLocal === true) || (currentSong as any).localRef?.songId));
@@ -108,7 +133,8 @@ const CoverTab: React.FC<CoverTabProps> = ({
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex flex-col items-center text-center space-y-4 mt-4"
+            className="mt-4 flex flex-col items-center space-y-4 text-center"
+            data-folia-cover-tab
         >
             <div className="space-y-1 relative w-full">
                 <div className="flex items-start justify-center gap-2">
@@ -177,6 +203,55 @@ const CoverTab: React.FC<CoverTabProps> = ({
                     </div>
                 </div>
             </div>
+            {playback && (
+                <div className="w-full space-y-2 pt-1 text-left" data-folia-cover-playback>
+                    <RemoteTransportControls
+                        currentTime={playback.currentTime}
+                        duration={playback.duration}
+                        playerState={playback.playerState}
+                        hasTrack={playback.hasTrack}
+                        controlsDisabled={playback.controlsDisabled}
+                        canGoPrevious={playback.canGoPrevious}
+                        canGoNext={playback.canGoNext}
+                        isDaylight={playback.isDaylight}
+                        onPrevious={playback.onPrevious}
+                        onTogglePlay={playback.onTogglePlay}
+                        onNext={playback.onNext}
+                        onSeek={playback.onSeek}
+                        controlColors={{
+                            primaryBackground: playback.theme.primaryColor,
+                            primaryForeground: playback.theme.backgroundColor,
+                            secondaryBackground: playback.isDaylight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.10)',
+                            secondaryForeground: playback.theme.primaryColor,
+                        }}
+                        extraActions={(
+                            <PlaybackOrderButton
+                                loopMode={playback.loopMode}
+                                onToggle={playback.onToggleLoop}
+                                disabled={playback.controlsDisabled}
+                                iconSize={16}
+                                title={t('commands.items.playback-loop.title')}
+                                color={playback.theme.primaryColor}
+                                className={`flex h-8 w-8 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${playback.loopMode !== 'off'
+                                    ? (playback.isDaylight ? 'bg-black/10' : 'bg-white/20')
+                                    : (playback.isDaylight ? 'bg-black/5 opacity-50 hover:bg-black/10 hover:opacity-100' : 'bg-white/5 opacity-50 hover:bg-white/10 hover:opacity-100')}`}
+                            />
+                        )}
+                    />
+                    <div className="relative h-14 min-w-0 overflow-hidden" data-folia-cover-lyrics>
+                        <RemoteLyricOverlay
+                            lyrics={playback.lyrics}
+                            currentTime={playback.currentTime - (playback.lyricOffsetMs ?? 0) / 1000}
+                            duration={playback.duration}
+                            playerState={playback.playerState}
+                            hasTrack={playback.hasTrack}
+                            visible
+                            baseColor={playback.theme.secondaryColor}
+                            activeColor={playback.theme.primaryColor}
+                        />
+                    </div>
+                </div>
+            )}
         </motion.div>
     );
 };

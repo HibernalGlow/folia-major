@@ -4,7 +4,7 @@ import { Settings, Settings2, X, Disc, SlidersHorizontal, ListMusic, User as Use
 import { useTranslation } from 'react-i18next';
 import { Album, Artist, SongResult, Theme, PlayerState, ReplayGainMode, LocalPlaylist, ThemeMode, VisualizerMode } from '../types';
 import type { ProviderCollection, ProviderUser } from '../types/onlineMusic';
-import CoverTab from './panelTab/CoverTab';
+import CoverTab, { type CoverTabPlayback } from './panelTab/CoverTab';
 import ControlsTab from './panelTab/ControlsTab';
 import QueueTab from './panelTab/QueueTab';
 import AccountTab from './panelTab/AccountTab';
@@ -79,6 +79,15 @@ type UnifiedPanelPlaybackProps = {
     isStageContext?: boolean;
     playbackControlsDisabled?: boolean;
     playbackProgress?: number;
+    coverPlayback?: Pick<CoverTabPlayback,
+        'currentTime'
+        | 'duration'
+        | 'lyrics'
+        | 'lyricOffsetMs'
+        | 'canGoPrevious'
+        | 'canGoNext'
+        | 'onSeek'
+    >;
     onOpenSettings?: () => void;
     onOpenCommandPalette?: () => void;
     isCommandPaletteOpen?: boolean;
@@ -198,6 +207,7 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
         isStageContext = false,
         playbackControlsDisabled = false,
         playbackProgress = 0,
+        coverPlayback,
         onOpenSettings,
         onOpenCommandPalette,
         isCommandPaletteOpen = false,
@@ -784,6 +794,19 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
                                                 onToggle();
                                             }}
                                             onCopySongInfoSuccess={onCopySongInfoSuccess}
+                                            playback={coverPlayback ? {
+                                                ...coverPlayback,
+                                                playerState,
+                                                loopMode,
+                                                hasTrack: Boolean(currentSong),
+                                                controlsDisabled: playbackControlsDisabled,
+                                                isDaylight,
+                                                theme,
+                                                onPrevious: onPrevTrack,
+                                                onTogglePlay,
+                                                onNext: onNextTrack,
+                                                onToggleLoop,
+                                            } : undefined}
                                         />
                                     )}
                                     {currentTab === 'controls' && (
