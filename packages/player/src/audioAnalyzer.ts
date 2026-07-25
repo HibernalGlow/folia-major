@@ -82,5 +82,7 @@ export function useFoliaAudioAnalyzer(audioRef: RefObject<HTMLAudioElement | nul
         binsRef.current = new Uint8Array(0);
     }, []);
 
-    return { activate, motion: { currentTime, audioPower, audioBands } };
+    const motion = useMemo<FoliaMotionRuntime>(() => ({ currentTime, audioPower, audioBands }), [audioBands, audioPower, currentTime]);
+
+    return useMemo<AnalyzerRuntime>(() => ({ activate, motion }), [activate, motion]);
 }
