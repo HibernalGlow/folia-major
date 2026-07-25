@@ -1,0 +1,308 @@
+/* Unified player panel, queue, library, and settings layouts. */
+
+.folia-panel {
+    position: relative;
+    display: grid;
+    width: 100%;
+    height: 100%;
+    min-width: 260px;
+    min-height: 180px;
+    grid-template-rows: 45px minmax(0, 1fr);
+    overflow: hidden;
+    border: 1px solid var(--folia-border);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--folia-background) 91%, transparent);
+    box-shadow: 0 16px 46px color-mix(in srgb, var(--folia-background) 34%, transparent);
+    backdrop-filter: blur(24px) saturate(1.16);
+}
+
+.folia-panel__tabs {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 7px;
+    border-bottom: 1px solid var(--folia-border-soft);
+    background: color-mix(in srgb, var(--folia-background) 76%, transparent);
+}
+
+.folia-panel-tab,
+.folia-panel__fullscreen {
+    display: inline-flex;
+    height: 32px;
+    min-width: 32px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 9px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--folia-muted);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 650;
+    transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.folia-panel-tab:hover,
+.folia-panel-tab[data-active='true'],
+.folia-panel__fullscreen:hover {
+    border-color: var(--folia-border-soft);
+    background: color-mix(in srgb, var(--folia-foreground) 8%, transparent);
+    color: var(--folia-foreground);
+}
+
+.folia-panel-tab svg,
+.folia-panel__fullscreen svg {
+    width: 15px;
+    height: 15px;
+}
+
+.folia-panel__fullscreen {
+    margin-left: auto;
+    padding: 0;
+}
+
+.folia-panel__content {
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+}
+
+.folia-panel__remote {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    border: 0;
+    border-radius: 7px;
+    box-shadow: none;
+}
+
+.folia-now {
+    display: grid;
+    min-height: 100%;
+    grid-template-columns: minmax(132px, 0.8fr) minmax(180px, 1.2fr);
+    align-items: center;
+    gap: 22px;
+    padding: 22px;
+}
+
+.folia-now__cover {
+    display: grid;
+    width: min(100%, 260px);
+    aspect-ratio: 1;
+    place-items: center;
+    justify-self: center;
+    overflow: hidden;
+    border: 1px solid var(--folia-border-soft);
+    border-radius: 8px;
+    background: var(--folia-surface-strong);
+    box-shadow: 0 18px 42px color-mix(in srgb, var(--folia-background) 38%, transparent);
+    color: var(--folia-muted);
+    font-size: 24px;
+    font-weight: 800;
+}
+
+.folia-now__cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.folia-now__details {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 13px;
+}
+
+.folia-now__lyric {
+    min-height: 40px;
+    margin: 0;
+    color: color-mix(in srgb, var(--folia-foreground) 86%, var(--folia-secondary));
+    font-size: 14px;
+    font-weight: 620;
+    line-height: 20px;
+}
+
+.folia-now__details .folia-transport {
+    justify-content: flex-start;
+}
+
+.folia-queue,
+.folia-library,
+.folia-settings {
+    display: flex;
+    min-height: 100%;
+    flex-direction: column;
+    gap: 10px;
+    padding: 13px;
+}
+
+.folia-queue > header,
+.folia-library > header {
+    display: flex;
+    min-height: 34px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--folia-muted);
+    font-size: 12px;
+}
+
+.folia-queue-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 32px;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 5px 4px 7px;
+    border-bottom: 1px solid var(--folia-border-soft);
+    background: transparent;
+}
+
+.folia-queue-row[data-active='true'] {
+    background: color-mix(in srgb, var(--folia-accent) 10%, transparent);
+}
+
+.folia-queue-row__track {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: 24px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.folia-queue-row__track > span:first-child {
+    color: var(--folia-muted);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+}
+
+.folia-queue-row__track > span:last-child {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+.folia-queue-row__track strong,
+.folia-queue-row__track small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.folia-queue-row__track strong {
+    font-size: 12px;
+    line-height: 17px;
+}
+
+.folia-queue-row__track small {
+    color: var(--folia-muted);
+    font-size: 10px;
+    line-height: 15px;
+}
+
+.folia-empty {
+    display: grid;
+    min-height: 140px;
+    place-items: center;
+    color: var(--folia-muted);
+    font-size: 12px;
+}
+
+.folia-library__add {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 32px 32px;
+    gap: 6px;
+}
+
+.folia-library input,
+.folia-setting select,
+.folia-setting input:not([type='range']) {
+    width: 100%;
+    min-width: 0;
+    height: 32px;
+    padding: 0 9px;
+    border: 1px solid var(--folia-border);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--folia-background) 72%, transparent);
+    color: var(--folia-foreground);
+    font-size: 11px;
+}
+
+.folia-library__roots {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.folia-library__roots > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 32px;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 5px 5px 9px;
+    border: 1px solid var(--folia-border-soft);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--folia-foreground) 4%, transparent);
+}
+
+.folia-library__roots span {
+    overflow: hidden;
+    color: var(--folia-muted);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.folia-error {
+    margin: 0;
+    color: color-mix(in srgb, #ef4444 78%, var(--folia-foreground));
+    font-size: 11px;
+}
+
+.folia-settings {
+    overflow: auto;
+}
+
+.folia-setting {
+    display: grid;
+    grid-template-columns: minmax(96px, 0.7fr) minmax(120px, 1.3fr);
+    align-items: center;
+    gap: 12px;
+    min-height: 38px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid var(--folia-border-soft);
+    color: var(--folia-muted);
+    font-size: 11px;
+}
+
+.folia-setting input[type='range'] {
+    width: 100%;
+    accent-color: var(--folia-accent);
+}
+
+.folia-visualizer-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+@media (max-width: 650px) {
+    .folia-panel-tab span {
+        display: none;
+    }
+
+    .folia-now {
+        grid-template-columns: minmax(110px, 0.8fr) minmax(150px, 1.2fr);
+        gap: 14px;
+        padding: 14px;
+    }
+}

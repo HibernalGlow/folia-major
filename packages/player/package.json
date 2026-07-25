@@ -1,0 +1,50 @@
+{
+  "name": "@hibernalglow/folia-player",
+  "version": "0.1.0",
+  "description": "Controlled Folia player surfaces and visualizer bridge for host applications.",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "sideEffects": [
+    "./src/player.css"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./fullscreen": "./src/fullscreen.ts",
+    "./locales": "./src/locales.ts",
+    "./parser": "./src/parser.ts",
+    "./styles.css": "./src/player.css"
+  },
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "peerDependencies": {
+    "i18next": ">=24",
+    "react": ">=19",
+    "react-dom": ">=19",
+    "react-i18next": ">=15"
+  },
+  "dependencies": {
+    "@applemusic-like-lyrics/ttml": "^1.0.1",
+    "@chenglou/pretext": "^0.0.8",
+    "@paper-design/shaders-react": "^0.0.77",
+    "@react-three/fiber": "^9.6.1",
+    "@xmldom/xmldom": "^0.9.10",
+    "framer-motion": "^12.42.2",
+    "lucide-react": "^1.25.0",
+    "react-colorful": "^5.8.0",
+    "react-window": "^2.2.7",
+    "three": "^0.185.1",
+    "twgl.js": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.185.1",
+    "typescript": "~7.0.2",
+    "vite": "^8.1.5"
+  }
+}

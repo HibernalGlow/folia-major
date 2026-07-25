@@ -1,0 +1,285 @@
+/* Shared Folia player tokens and controls. */
+
+.folia-player-root {
+    display: contents;
+    --folia-surface: color-mix(in srgb, var(--folia-background) 82%, transparent);
+    --folia-surface-strong: color-mix(in srgb, var(--folia-background) 94%, var(--folia-foreground) 6%);
+    --folia-border: color-mix(in srgb, var(--folia-foreground) 13%, transparent);
+    --folia-border-soft: color-mix(in srgb, var(--folia-foreground) 8%, transparent);
+    --folia-muted: color-mix(in srgb, var(--folia-secondary) 82%, transparent);
+    --folia-track: color-mix(in srgb, var(--folia-foreground) 12%, transparent);
+    --folia-shadow: 0 18px 50px color-mix(in srgb, var(--folia-background) 58%, transparent);
+}
+
+.folia-player-audio {
+    display: none;
+}
+
+[data-folia-surface],
+[data-folia-surface] * {
+    box-sizing: border-box;
+}
+
+[data-folia-surface] {
+    color: var(--folia-foreground);
+    font-family: var(--folia-font), inherit;
+    font-weight: var(--folia-font-weight);
+    letter-spacing: 0;
+}
+
+[data-folia-surface] button,
+[data-folia-surface] input,
+[data-folia-surface] select {
+    color: inherit;
+    font: inherit;
+    letter-spacing: 0;
+}
+
+.folia-icon-button {
+    display: inline-flex;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--folia-foreground) 6%, transparent);
+    color: color-mix(in srgb, var(--folia-foreground) 72%, transparent);
+    cursor: pointer;
+    transition: color 160ms ease, background-color 160ms ease, transform 160ms ease, border-color 160ms ease;
+}
+
+.folia-icon-button:hover {
+    border-color: var(--folia-border-soft);
+    background: color-mix(in srgb, var(--folia-foreground) 11%, transparent);
+    color: var(--folia-foreground);
+}
+
+.folia-icon-button:active {
+    transform: scale(0.94);
+}
+
+.folia-icon-button:focus-visible,
+.folia-artwork-button:focus-visible,
+[data-folia-surface] input:focus-visible,
+[data-folia-surface] select:focus-visible {
+    outline: 2px solid var(--folia-accent);
+    outline-offset: 2px;
+}
+
+.folia-icon-button svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+}
+
+.folia-icon-button.is-primary {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+    border-color: transparent;
+    background: var(--folia-foreground);
+    color: var(--folia-background);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--folia-background) 34%, transparent);
+}
+
+.folia-icon-button.is-primary svg {
+    width: 17px;
+    height: 17px;
+}
+
+.folia-play-glyph {
+    transform: translateX(1px);
+}
+
+.folia-track-copy {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+}
+
+.folia-track-copy strong,
+.folia-track-copy span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.folia-track-copy strong {
+    color: var(--folia-foreground);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 18px;
+}
+
+.folia-track-copy span {
+    color: var(--folia-muted);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 16px;
+}
+
+.folia-track-copy.is-large strong {
+    font-size: 18px;
+    line-height: 24px;
+}
+
+.folia-track-copy.is-large span {
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.folia-transport {
+    display: flex;
+    min-width: 118px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+}
+
+.folia-transport.is-compact {
+    min-width: 104px;
+    gap: 4px;
+}
+
+.folia-transport__state {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+
+.folia-artwork-button {
+    --folia-progress-angle: 0deg;
+    position: relative;
+    display: inline-grid;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    place-items: center;
+    padding: 3px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 50%;
+    background: conic-gradient(var(--folia-accent) var(--folia-progress-angle), var(--folia-track) 0deg);
+    cursor: pointer;
+    transition: transform 180ms ease, filter 180ms ease;
+}
+
+.folia-artwork-button.is-compact {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+}
+
+.folia-artwork-button:hover {
+    filter: saturate(1.08);
+    transform: scale(1.04);
+}
+
+.folia-artwork-button__image,
+.folia-artwork-button__overlay {
+    position: absolute;
+    inset: 3px;
+    overflow: hidden;
+    border-radius: 50%;
+}
+
+.folia-artwork-button__image {
+    display: grid;
+    place-items: center;
+    background: var(--folia-surface-strong);
+}
+
+.folia-artwork-button__image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.folia-artwork-button__fallback {
+    color: var(--folia-muted);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.folia-artwork-button__overlay {
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--folia-background) 46%, transparent);
+    color: var(--folia-foreground);
+    opacity: 0;
+    transition: opacity 160ms ease;
+}
+
+.folia-artwork-button:hover .folia-artwork-button__overlay,
+.folia-artwork-button:focus-visible .folia-artwork-button__overlay,
+.folia-artwork-button__fallback + .folia-artwork-button__overlay {
+    opacity: 1;
+}
+
+.folia-artwork-button__overlay svg {
+    width: 17px;
+    height: 17px;
+    fill: currentColor;
+}
+
+.folia-progress-control {
+    display: grid;
+    width: 100%;
+    grid-template-columns: auto minmax(48px, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    color: color-mix(in srgb, var(--folia-secondary) 72%, transparent);
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+    line-height: 14px;
+}
+
+.folia-progress-control input[type='range'] {
+    width: 100%;
+    height: 18px;
+    margin: 0;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.folia-progress-control input[type='range']::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--folia-accent) var(--folia-progress), var(--folia-track) var(--folia-progress));
+}
+
+.folia-progress-control input[type='range']::-webkit-slider-thumb {
+    width: 11px;
+    height: 11px;
+    margin-top: -4px;
+    appearance: none;
+    border: 2px solid var(--folia-surface-strong);
+    border-radius: 50%;
+    background: var(--folia-foreground);
+    box-shadow: 0 1px 5px color-mix(in srgb, var(--folia-background) 35%, transparent);
+}
+
+.folia-progress-control input[type='range']:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-folia-surface] *,
+    [data-folia-surface] *::before,
+    [data-folia-surface] *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

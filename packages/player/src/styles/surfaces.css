@@ -1,0 +1,230 @@
+/* Remote-control card and bottom playback bar surfaces. */
+
+.folia-remote {
+    position: relative;
+    display: grid;
+    width: 100%;
+    min-width: 280px;
+    max-width: 520px;
+    min-height: 144px;
+    grid-template-columns: 112px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    overflow: hidden;
+    border: 1px solid var(--folia-border);
+    border-radius: 20px;
+    background: var(--folia-surface);
+    box-shadow: var(--folia-shadow);
+    backdrop-filter: blur(28px) saturate(1.2);
+}
+
+.folia-remote__cover {
+    display: grid;
+    width: 112px;
+    height: 112px;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid var(--folia-border-soft);
+    border-radius: 12px;
+    background: var(--folia-surface-strong);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--folia-background) 30%, transparent);
+    color: var(--folia-muted);
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.folia-remote__cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.folia-remote__body {
+    display: grid;
+    min-width: 0;
+    min-height: 112px;
+    grid-template-rows: auto minmax(44px, 1fr) auto;
+    gap: 4px;
+}
+
+.folia-remote__swap {
+    display: grid;
+    min-height: 48px;
+    align-items: center;
+}
+
+.folia-remote__lyric,
+.folia-remote__controls {
+    grid-area: 1 / 1;
+    min-width: 0;
+    transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.folia-remote__lyric {
+    display: -webkit-box;
+    max-height: 38px;
+    margin: 0;
+    overflow: hidden;
+    color: color-mix(in srgb, var(--folia-foreground) 86%, var(--folia-secondary));
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 19px;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.folia-remote__controls {
+    display: flex;
+    justify-content: flex-start;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(4px);
+}
+
+.folia-remote__swap[data-controls-visible='true'] .folia-remote__lyric {
+    opacity: 0;
+    transform: translateY(-4px);
+}
+
+.folia-remote__swap[data-controls-visible='true'] .folia-remote__controls {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.folia-remote.is-compact {
+    min-height: 104px;
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 12px;
+    padding: 12px;
+    border-radius: 14px;
+}
+
+.folia-remote.is-compact .folia-remote__cover {
+    width: 72px;
+    height: 72px;
+    border-radius: 9px;
+    font-size: 14px;
+}
+
+.folia-remote.is-compact .folia-remote__body {
+    min-height: 72px;
+    grid-template-rows: auto minmax(32px, 1fr) 18px;
+}
+
+.folia-remote.is-compact .folia-progress-control {
+    grid-template-columns: minmax(48px, 1fr);
+}
+
+.folia-bar {
+    position: relative;
+    width: min(100%, 540px);
+    min-width: 280px;
+    overflow: hidden;
+    border: 1px solid var(--folia-border);
+    border-radius: 24px;
+    background: var(--folia-surface);
+    box-shadow: var(--folia-shadow);
+    backdrop-filter: blur(28px) saturate(1.2);
+    transition: width 280ms cubic-bezier(0.2, 0.8, 0.2, 1), border-radius 280ms ease, background-color 180ms ease;
+}
+
+.folia-bar__main {
+    display: grid;
+    min-height: 64px;
+    grid-template-columns: auto minmax(84px, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    transition: min-height 280ms cubic-bezier(0.2, 0.8, 0.2, 1), padding 280ms ease;
+}
+
+.folia-bar__actions {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    opacity: 1;
+    transition: opacity 150ms ease;
+}
+
+.folia-bar > .folia-progress-control {
+    padding: 0 14px 9px;
+    transition: height 220ms ease, padding 220ms ease, opacity 160ms ease;
+}
+
+.folia-bar.is-collapsed {
+    width: min(100%, 390px);
+}
+
+.folia-bar.is-collapsed .folia-bar__main {
+    min-height: 48px;
+    gap: 9px;
+    padding: 4px 8px;
+}
+
+.folia-bar.is-collapsed .folia-transport {
+    min-width: 40px;
+}
+
+.folia-bar.is-collapsed .folia-transport > .folia-icon-button,
+.folia-bar.is-collapsed .folia-bar__actions {
+    display: none;
+}
+
+.folia-bar.is-collapsed .folia-track-copy strong {
+    font-size: 12px;
+}
+
+.folia-bar.is-collapsed > .folia-progress-control {
+    position: absolute;
+    right: 12px;
+    bottom: 1px;
+    left: 54px;
+    display: block;
+    width: auto;
+    height: 4px;
+    padding: 0;
+}
+
+.folia-bar.is-collapsed > .folia-progress-control input[type='range'] {
+    height: 4px;
+    pointer-events: none;
+}
+
+.folia-bar.is-collapsed > .folia-progress-control span,
+.folia-bar.is-collapsed > .folia-progress-control input[type='range']::-webkit-slider-thumb {
+    display: none;
+}
+
+@media (max-width: 420px) {
+    .folia-remote {
+        min-width: 0;
+        grid-template-columns: 72px minmax(0, 1fr);
+        gap: 11px;
+        padding: 11px;
+        border-radius: 14px;
+    }
+
+    .folia-remote__cover {
+        width: 72px;
+        height: 72px;
+        border-radius: 9px;
+    }
+
+    .folia-remote__body {
+        min-height: 76px;
+    }
+
+    .folia-bar {
+        min-width: 0;
+    }
+
+    .folia-bar__main {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .folia-bar__actions {
+        display: none;
+    }
+}
