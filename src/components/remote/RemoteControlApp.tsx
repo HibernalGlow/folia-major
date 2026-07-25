@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { ChevronLeft, Heart, Lock, LockOpen, Pause, Pin, PinOff, Play, SkipBack, SkipForward, Video, MirrorRectangular, X, Check, Sliders, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PlayerState } from '../../types';
+import { PlayerState, type Theme } from '../../types';
 import RemoteVideoExportPanel from './RemoteVideoExportPanel';
 import RemoteLyricOverlay from './RemoteLyricOverlay';
 import type { RemoteControlCommand, RemoteControlSnapshot } from '../../types/remoteControl';
@@ -19,7 +19,8 @@ import { extractColors } from '../../utils/colorExtractor';
 import { useTranslation } from 'react-i18next';
 
 // src/components/remote/RemoteControlApp.tsx
-// Electron-only companion window for controlling the single real player instance.
+// Companion controller for the single real player instance. Electron remains the
+// default runtime; hosts may provide a controlled snapshot and command adapter.
 const formatTime = (seconds: number) => {
     if (!Number.isFinite(seconds) || seconds <= 0) {
         return '0:00';
@@ -38,7 +39,7 @@ const REMOTE_TITLEBAR_REVEAL_THRESHOLD = 44;
 
 type BackgroundMode = 'default' | 'cover' | 'transparent';
 
-const sendCommand = (command: RemoteControlCommand) => {
+const sendElectronCommand = (command: RemoteControlCommand) => {
     void window.electron?.sendRemoteControlCommand(command);
 };
 
@@ -89,9 +90,26 @@ const emptySnapshot: RemoteControlSnapshot = {
 
 type RemotePanelMode = 'playback' | 'export' | 'transparent-controls';
 
-const RemoteControlApp: React.FC = () => {
+export interface RemoteControlAppProps {
+    snapshot?: RemoteControlSnapshot;
+    onCommand?: (command: RemoteControlCommand) => void;
+    embedded?: boolean;
+    className?: string;
+    idleLyricsDelayMs?: number;
+    theme?: Theme;
+}
+
+const RemoteControlApp: React.FC<RemoteControlAppProps> = ({
+    snapshot: controlledSnapshot,
+    onCommand,
+    embedded = false,
+    className = '',
+    idleLyricsDelayMs = 800,
+    theme,
+}) => {
     const { t } = useTranslation();
     const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() => {
+        if (embedded) return 'cover';
         if (typeof window !== 'undefined') {
             const stored = window.localStorage.getItem(REMOTE_BACKGROUND_MODE_STORAGE_KEY);
             if (stored === 'cover' || stored === 'transparent' || stored === 'default') {
@@ -101,7 +119,8 @@ const RemoteControlApp: React.FC = () => {
         return 'default';
     });
     const [coverColors, setCoverColors] = useState<string[]>([]);
-    const [snapshot, setSnapshot] = useState<RemoteControlSnapshot>(emptySnapshot);
+    const [internalSnapshot, setInternalSnapshot] = useState<RemoteControlSnapshot>(emptySnapshot);
+    const snapshot = controlledSnapshot ?? internalSnapshot;
     const [pendingSeek, setPendingSeek] = useState<number | null>(null);
     const [activePanel, setActivePanel] = useState<RemotePanelMode>('playback');
     const [selectedPresetId, setSelectedPresetId] = useState(DEFAULT_VIDEO_EXPORT_PRESET_ID);
@@ -122,6 +141,13 @@ const RemoteControlApp: React.FC = () => {
     const widthFocusedRef = useRef(false);
     const heightFocusedRef = useRef(false);
     const isSavingRef = useRef(false);
+    const dispatchCommand = useCallback((command: RemoteControlCommand) => {
+        if (onCommand) {
+            onCommand(command);
+            return;
+        }
+        sendElectronCommand(command);
+    }, [onCommand]);
 
     useEffect(() => {
         const activePreset = exportPresets.find(preset => preset.id === selectedPresetId);
@@ -151,19 +177,31 @@ const RemoteControlApp: React.FC = () => {
 
         const timer = setTimeout(() => {
             setShowLyricsOverlay(true);
-        }, 800);
+        }, idleLyricsDelayMs);
 
         return () => clearTimeout(timer);
-    }, [isHovered]);
+    }, [idleLyricsDelayMs, isHovered]);
 
     useEffect(() => {
+        if (embedded) return;
+        const previousBodyBackground = document.body.style.backgroundColor;
+        const previousRootBackground = document.documentElement.style.backgroundColor;
+        const previousOverflow = document.body.style.overflow;
+        const previousTitle = document.title;
         document.body.style.backgroundColor = 'transparent';
         document.documentElement.style.backgroundColor = 'transparent';
         document.body.style.overflow = 'visible';
         document.title = REMOTE_CONTROL_DOCUMENT_TITLE;
-    }, []);
+        return () => {
+            document.body.style.backgroundColor = previousBodyBackground;
+            document.documentElement.style.backgroundColor = previousRootBackground;
+            document.body.style.overflow = previousOverflow;
+            document.title = previousTitle;
+        };
+    }, [embedded]);
 
     useEffect(() => {
+        if (embedded) return;
         const handleMouseMove = (event: MouseEvent) => {
             const nextRevealed = event.clientY <= REMOTE_TITLEBAR_REVEAL_THRESHOLD;
             setWindowControlsRevealed(prev => (prev === nextRevealed ? prev : nextRevealed));
@@ -177,13 +215,15 @@ const RemoteControlApp: React.FC = () => {
             window.removeEventListener('mousemove', handleMouseMove);
             window.removeEventListener('mouseleave', handleMouseLeave);
         };
-    }, []);
+    }, [embedded]);
 
     useEffect(() => {
+        if (embedded) return;
         window.localStorage.setItem(REMOTE_BACKGROUND_MODE_STORAGE_KEY, backgroundMode);
-    }, [backgroundMode]);
+    }, [backgroundMode, embedded]);
 
     useEffect(() => {
+        if (controlledSnapshot || embedded) return;
         let mounted = true;
         if (backgroundMode === 'cover' && snapshot.coverUrl) {
             extractColors(snapshot.coverUrl, 3).then(colors => {
@@ -200,7 +240,7 @@ const RemoteControlApp: React.FC = () => {
 
         void window.electron?.getRemoteControlSnapshot?.().then(current => {
             if (mounted && current) {
-                setSnapshot(current as RemoteControlSnapshot);
+                setInternalSnapshot(current as RemoteControlSnapshot);
             }
         });
 
@@ -212,7 +252,7 @@ const RemoteControlApp: React.FC = () => {
 
         const unsubscribe = window.electron?.onRemoteControlSnapshot?.(next => {
             const nextSnapshot = next as RemoteControlSnapshot;
-            setSnapshot(previous => ({
+            setInternalSnapshot(previous => ({
                 ...previous,
                 ...nextSnapshot,
                 lyrics: Object.prototype.hasOwnProperty.call(nextSnapshot, 'lyrics')
@@ -228,7 +268,12 @@ const RemoteControlApp: React.FC = () => {
             mounted = false;
             unsubscribe?.();
         };
-    }, []);
+    }, [controlledSnapshot, embedded]);
+
+    useEffect(() => {
+        if (!controlledSnapshot || isDraggingRef.current) return;
+        setPendingSeek(null);
+    }, [controlledSnapshot?.currentTime]);
 
     const currentTime = pendingSeek ?? snapshot.currentTime;
     const duration = Number.isFinite(snapshot.duration) && snapshot.duration > 0 ? snapshot.duration : 0;
@@ -240,8 +285,8 @@ const RemoteControlApp: React.FC = () => {
     const exportState = snapshot.exportState ?? idleVideoExportState();
     const isDaylight = Boolean(snapshot.isDaylight);
 
-    const baseColor = isDaylight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.35)';
-    const activeColor = isDaylight ? '#1c1917' : '#ffffff';
+    const baseColor = theme?.secondaryColor ?? (isDaylight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.35)');
+    const activeColor = theme?.primaryColor ?? (isDaylight ? '#1c1917' : '#ffffff');
 
     const lastStatusRef = React.useRef(exportState.status);
     useEffect(() => {
@@ -261,8 +306,9 @@ const RemoteControlApp: React.FC = () => {
     const progressPercent = duration > 0 ? (progressValue / duration) * 100 : 0;
 
     useEffect(() => {
+        if (embedded) return;
         window.localStorage.setItem(REMOTE_VIDEO_EXPORT_PRESET_VALUES_STORAGE_KEY, JSON.stringify(presetValues));
-    }, [presetValues]);
+    }, [embedded, presetValues]);
 
     const handleSelectExportPreset = (presetId: string) => {
         const nextPreset = exportPresets.find(item => item.id === presetId);
@@ -271,7 +317,7 @@ const RemoteControlApp: React.FC = () => {
         }
 
         setSelectedPresetId(nextPreset.id);
-        sendCommand({ type: 'resize-main-window', width: nextPreset.width, height: nextPreset.height });
+        dispatchCommand({ type: 'resize-main-window', width: nextPreset.width, height: nextPreset.height });
     };
 
     const handleApplyCustomPresetValues = () => {
@@ -305,7 +351,7 @@ const RemoteControlApp: React.FC = () => {
         nextPresetValues[activeIndex] = { width: clampedW, height: clampedH };
         setPresetValues(nextPresetValues);
 
-        sendCommand({ type: 'resize-main-window', width: clampedW, height: clampedH });
+        dispatchCommand({ type: 'resize-main-window', width: clampedW, height: clampedH });
     };
 
     const getCalculatedAspectRatio = (t: (key: string) => string, wStr: string, hStr: string) => {
@@ -355,8 +401,13 @@ const RemoteControlApp: React.FC = () => {
 
     return (
         <main
-            className={`h-screen w-screen bg-transparent p-1 select-none transition-colors duration-300 ${isDaylight ? 'text-zinc-900' : 'text-white'
-                }`}
+            className={`${embedded ? 'h-full w-full' : 'h-screen w-screen'} bg-transparent p-1 select-none transition-colors duration-300 ${isDaylight ? 'text-zinc-900' : 'text-white'} ${className}`.trim()}
+            data-folia-remote-mode={embedded ? 'embedded' : 'window'}
+            style={theme ? {
+                color: theme.primaryColor,
+                fontFamily: theme.fontFamily,
+                fontWeight: theme.fontWeight,
+            } : undefined}
         >
             <div className={`relative flex h-full w-full rounded-[20px] border p-4 items-center justify-center overflow-hidden transition-colors duration-300 ${backgroundMode === 'transparent' ? 'border-transparent' : (isDaylight ? 'border-black/10' : 'border-white/10')
                 }`}>
@@ -378,7 +429,7 @@ const RemoteControlApp: React.FC = () => {
                         <div className={`absolute inset-0 transition-colors duration-300 ${backgroundMode === 'cover' && coverColors.length > 0
                             ? (isDaylight ? 'bg-zinc-100' : 'bg-zinc-950')
                             : (isDaylight ? 'bg-[#f5f5f4]' : 'bg-[#060814]')
-                            }`} />
+                            }`} style={embedded && theme ? { backgroundColor: theme.backgroundColor } : undefined} />
 
                         {/* Blurry blobs */}
                         {backgroundMode === 'cover' && coverColors.length >= 2 ? (
@@ -409,7 +460,7 @@ const RemoteControlApp: React.FC = () => {
                     </div>
                 )}
 
-                <div
+                {!embedded && <div
                     className="absolute inset-x-0 top-0 z-20 h-11"
                     style={dragStyle}
                 >
@@ -471,7 +522,7 @@ const RemoteControlApp: React.FC = () => {
                             <X size={13} />
                         </button>
                     </div>
-                </div>
+                </div>}
 
                 <div className="w-full flex items-center" style={noDragStyle}>
                     <div className="grid grid-cols-[112px_1fr] gap-4 w-full items-center">
@@ -578,14 +629,14 @@ const RemoteControlApp: React.FC = () => {
                                                             isDraggingRef.current = false;
                                                             lastSeekTimeRef.current = Date.now();
                                                             if (pendingSeek !== null) {
-                                                                sendCommand({ type: 'seek', time: pendingSeek });
+                                                                dispatchCommand({ type: 'seek', time: pendingSeek });
                                                             }
                                                         }}
                                                         onKeyUp={(event) => {
                                                             if (event.key === 'Enter' && pendingSeek !== null) {
                                                                 isDraggingRef.current = false;
                                                                 lastSeekTimeRef.current = Date.now();
-                                                                sendCommand({ type: 'seek', time: pendingSeek });
+                                                                dispatchCommand({ type: 'seek', time: pendingSeek });
                                                             }
                                                         }}
                                                         className="absolute inset-x-0 h-5 w-full appearance-none cursor-pointer bg-transparent opacity-0 z-10 disabled:cursor-not-allowed [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-transparent [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-transparent"
@@ -623,7 +674,7 @@ const RemoteControlApp: React.FC = () => {
                                                                         type="button"
                                                                          title={t('remote.previous')}
                                                                         disabled={primaryDisabled || !snapshot.canGoPrevious}
-                                                                        onClick={() => sendCommand({ type: 'previous' })}
+                                                                        onClick={() => dispatchCommand({ type: 'previous' })}
                                                                         className={`flex h-8 w-8 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${isDaylight
                                                                             ? 'bg-black/5 text-black/60 hover:bg-black/10 hover:text-black'
                                                                             : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
@@ -635,7 +686,7 @@ const RemoteControlApp: React.FC = () => {
                                                                        type="button"
                                                                         title={isPlaying ? t('remote.pause') : t('remote.play')}
                                                                        disabled={primaryDisabled}
-                                                                        onClick={() => sendCommand({ type: 'play-pause' })}
+                                                                        onClick={() => dispatchCommand({ type: 'play-pause' })}
                                                                         className={`flex h-9 w-9 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${isDaylight
                                                                             ? 'bg-zinc-900 text-white hover:bg-zinc-800'
                                                                             : 'bg-white text-zinc-950 hover:bg-white/90'
@@ -647,7 +698,7 @@ const RemoteControlApp: React.FC = () => {
                                                                         type="button"
                                                                          title={t('remote.next')}
                                                                         disabled={primaryDisabled || !snapshot.canGoNext}
-                                                                        onClick={() => sendCommand({ type: 'next' })}
+                                                                        onClick={() => dispatchCommand({ type: 'next' })}
                                                                         className={`flex h-8 w-8 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${isDaylight
                                                                             ? 'bg-black/5 text-black/60 hover:bg-black/10 hover:text-black'
                                                                             : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
@@ -656,12 +707,12 @@ const RemoteControlApp: React.FC = () => {
                                                                         <SkipForward size={16} strokeWidth={2} />
                                                                     </button>
                                                                 </div>
-                                                                <div className="flex items-center gap-1.5">
+                                                                {!embedded && <div className="flex items-center gap-1.5">
                                                                     <button
                                                                         type="button"
                                                                         title={snapshot.isLiked ? t('remote.unlike') : t('remote.like')}
                                                                         disabled={primaryDisabled}
-                                                                        onClick={() => sendCommand({ type: 'toggle-like' })}
+                                                                        onClick={() => dispatchCommand({ type: 'toggle-like' })}
                                                                         className={`flex h-8 w-8 items-center justify-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-35 ${snapshot.isLiked
                                                                             ? (isDaylight ? 'bg-red-500/20 text-red-600 hover:bg-red-500/30' : 'bg-red-500/25 text-red-400 hover:bg-red-500/35')
                                                                             : (isDaylight ? 'bg-black/5 text-black/70 hover:bg-black/10 hover:text-black' : 'bg-white/5 text-white/70 hover:bg-white/10 hover:text-white')
@@ -693,7 +744,7 @@ const RemoteControlApp: React.FC = () => {
                                                                     >
                                                                         <Video size={16} strokeWidth={2} />
                                                                     </button>
-                                                                </div>
+                                                                </div>}
                                                             </div>
                                                         </motion.div>
                                                     ) : (
@@ -728,7 +779,7 @@ const RemoteControlApp: React.FC = () => {
                                                 isDaylight={isDaylight}
                                                 onOpenPresetSelector={() => setPresetSelectorOpen(true)}
                                                 onStartModeChange={setStartMode}
-                                                sendCommand={sendCommand}
+                                                sendCommand={dispatchCommand}
                                             />
                                         </motion.div>
                                     ) : (
@@ -745,7 +796,7 @@ const RemoteControlApp: React.FC = () => {
                                                 <div className={`flex h-8 rounded-xl p-0.5 transition-colors ${isDaylight ? 'bg-black/5' : 'bg-white/5'}`}>
                                                     <button
                                                         type="button"
-                                                        onClick={() => sendCommand({ type: 'set-transparent-mode-enabled', enabled: false })}
+                                                        onClick={() => dispatchCommand({ type: 'set-transparent-mode-enabled', enabled: false })}
                                                         className={`flex-1 flex items-center justify-center rounded-lg text-[11px] font-bold transition ${!snapshot.transparentModeEnabled
                                                             ? (isDaylight ? 'bg-zinc-900 text-white shadow-sm' : 'bg-white text-zinc-950 shadow-sm')
                                                             : (isDaylight ? 'text-black/70 hover:bg-black/5 hover:text-black' : 'text-white/70 hover:bg-white/5 hover:text-white')
@@ -755,7 +806,7 @@ const RemoteControlApp: React.FC = () => {
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={() => sendCommand({ type: 'set-transparent-mode-enabled', enabled: true })}
+                                                        onClick={() => dispatchCommand({ type: 'set-transparent-mode-enabled', enabled: true })}
                                                         className={`flex-1 flex items-center justify-center rounded-lg text-[11px] font-bold transition ${snapshot.transparentModeEnabled
                                                             ? (isDaylight ? 'bg-zinc-900 text-white shadow-sm' : 'bg-white text-zinc-950 shadow-sm')
                                                             : (isDaylight ? 'text-black/70 hover:bg-black/5 hover:text-black' : 'text-white/70 hover:bg-white/5 hover:text-white')
@@ -767,7 +818,7 @@ const RemoteControlApp: React.FC = () => {
 
                                                 <button
                                                     type="button"
-                                                    onClick={() => sendCommand({ type: 'cycle-player-chrome-visibility-mode' })}
+                                                    onClick={() => dispatchCommand({ type: 'cycle-player-chrome-visibility-mode' })}
                                                     className={`flex h-8 items-center justify-center rounded-xl text-[11px] font-bold transition border ${snapshot.playerChromeVisibilityMode === 'always-hidden'
                                                         ? (isDaylight ? 'bg-zinc-900 border-zinc-900 text-white shadow-sm' : 'bg-white border-white text-zinc-950 shadow-sm')
                                                         : (isDaylight ? 'bg-black/5 border-black/5 text-black/70 hover:bg-black/10 hover:text-black' : 'bg-white/5 border-white/5 text-white/70 hover:bg-white/10 hover:text-white')
@@ -785,7 +836,7 @@ const RemoteControlApp: React.FC = () => {
                                             <div className="grid grid-cols-2 gap-2.5">
                                                 <button
                                                     type="button"
-                                                    onClick={() => sendCommand({ type: 'set-main-window-border-visible', visible: !snapshot.mainWindowBorderVisible })}
+                                                    onClick={() => dispatchCommand({ type: 'set-main-window-border-visible', visible: !snapshot.mainWindowBorderVisible })}
                                                     className={`flex h-8 items-center justify-center rounded-xl text-[11px] font-bold transition border ${snapshot.mainWindowBorderVisible
                                                         ? (isDaylight ? 'bg-zinc-900 border-zinc-900 text-white shadow-sm' : 'bg-white border-white text-zinc-950 shadow-sm')
                                                         : (isDaylight ? 'bg-black/5 border-black/5 text-black/70 hover:bg-black/10 hover:text-black' : 'bg-white/5 border-white/5 text-white/70 hover:bg-white/10 hover:text-white')
@@ -801,7 +852,7 @@ const RemoteControlApp: React.FC = () => {
                                                         disabled={!snapshot.transparentModeEnabled}
                                                         title={snapshot.mainWindowClickThroughEnabled ? t('remote.disableClickThrough') : t('remote.enableClickThrough')}
                                                         aria-pressed={snapshot.mainWindowClickThroughEnabled}
-                                                        onClick={() => sendCommand({ type: 'set-main-window-click-through', enabled: !snapshot.mainWindowClickThroughEnabled })}
+                                                        onClick={() => dispatchCommand({ type: 'set-main-window-click-through', enabled: !snapshot.mainWindowClickThroughEnabled })}
                                                         className={`flex h-full items-center justify-center gap-1 text-[10px] font-bold transition disabled:cursor-not-allowed disabled:opacity-35 ${snapshot.mainWindowClickThroughEnabled
                                                             ? (isDaylight ? 'bg-zinc-900 text-white shadow-sm' : 'bg-white text-zinc-950 shadow-sm')
                                                             : (isDaylight ? 'text-black/70 hover:bg-black/5 hover:text-black' : 'text-white/70 hover:bg-white/5 hover:text-white')
@@ -814,7 +865,7 @@ const RemoteControlApp: React.FC = () => {
                                                         type="button"
                                                         title={snapshot.mainWindowAlwaysOnTop ? t('remote.unpinMainWindow') : t('remote.pinMainWindow')}
                                                         aria-pressed={snapshot.mainWindowAlwaysOnTop}
-                                                        onClick={() => sendCommand({ type: 'set-main-window-always-on-top', enabled: !snapshot.mainWindowAlwaysOnTop })}
+                                                        onClick={() => dispatchCommand({ type: 'set-main-window-always-on-top', enabled: !snapshot.mainWindowAlwaysOnTop })}
                                                         className={`flex h-full items-center justify-center gap-1 border-l text-[10px] font-bold transition ${snapshot.mainWindowAlwaysOnTop
                                                             ? (isDaylight ? 'border-zinc-900 bg-zinc-900 text-white shadow-sm' : 'border-white bg-white text-zinc-950 shadow-sm')
                                                             : (isDaylight ? 'border-black/5 text-black/70 hover:bg-black/5 hover:text-black' : 'border-white/5 text-white/70 hover:bg-white/5 hover:text-white')
@@ -835,7 +886,7 @@ const RemoteControlApp: React.FC = () => {
 
                 {/* Root-Level Preset Selector Overlay Modal */}
                 <AnimatePresence>
-                    {presetSelectorOpen && (
+                    {!embedded && presetSelectorOpen && (
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}

@@ -34,13 +34,19 @@
     "@paper-design/shaders-react": "^0.0.77",
     "@react-three/fiber": "^9.6.1",
     "@xmldom/xmldom": "^0.9.10",
+    "blueimp-md5": "^2.19.0",
+    "dexie": "^4.4.4",
     "framer-motion": "^12.42.2",
+    "i18next-browser-languagedetector": "^8.2.1",
+    "opencc-js": "^1.4.1",
     "react-colorful": "^5.8.0",
     "react-window": "^2.2.7",
     "three": "^0.185.1",
-    "twgl.js": "^7.0.0"
+    "twgl.js": "^7.0.0",
+    "wanakana": "^5.3.1"
   },
   "devDependencies": {
+    "@types/blueimp-md5": "^2.18.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/three": "^0.185.1",

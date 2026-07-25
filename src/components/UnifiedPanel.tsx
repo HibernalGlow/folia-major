@@ -625,6 +625,7 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
 
     return (
         <div
+            data-folia-component="UnifiedPanel"
             className="absolute bottom-8 right-0 z-[60] flex flex-col items-end gap-4 pointer-events-none"
             onClick={(e) => e.stopPropagation()}
         >

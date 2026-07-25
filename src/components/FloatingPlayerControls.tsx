@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Pause, Repeat, Repeat1, RepeatOff,ChartBar } from 'lucide-react';
+import { Play, Pause, Repeat, Repeat1, Repeat2 as RepeatOff,ChartBar } from 'lucide-react';
 import { MotionValue } from 'framer-motion';
 import ProgressBar from './ProgressBar';
 import { PlayerState, LyricData, Theme } from '../types';
@@ -141,6 +141,7 @@ const FloatingPlayerControls: React.FC<FloatingPlayerControlsProps> = ({
     return (
         <>
             <motion.div
+                data-folia-component="FloatingPlayerControls"
                 className={`absolute bottom-8 left-1/2 -translate-x-1/2 z-60 w-full flex justify-center transition-all duration-300 pointer-events-none
                     ${currentView === 'home' ? 'max-w-[calc(100vw-120px)] md:max-w-lg' : 'max-w-lg px-4'}`}
                 initial={false}
