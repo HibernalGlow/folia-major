@@ -45,6 +45,7 @@ export interface FoliaPlayerPreferences {
     volume: number;
     loopMode: FoliaLoopMode;
     replayGainMode: FoliaReplayGainMode;
+    backgroundMetadataEnabled: boolean;
     outputDeviceId?: string;
     visualizerMode: VisualizerMode;
     background: VisualizerBackgroundConfig;
@@ -115,6 +116,7 @@ export const DEFAULT_FOLIA_PLAYER_PREFERENCES: FoliaPlayerPreferences = {
     volume: 0.8,
     loopMode: 'all',
     replayGainMode: 'off',
+    backgroundMetadataEnabled: false,
     visualizerMode: 'classic',
     background: { mode: 'latent' },
     lyricsFontScale: 1,

@@ -6,6 +6,7 @@ import { PlayerState, type SongResult, type VisualizerMode } from '../../../src/
 import type { FoliaLoopMode, FoliaTrack } from './types';
 import { FoliaI18nScope } from './FoliaI18nScope';
 import { useFoliaPlayer } from './PlayerProvider';
+import { FoliaPlayerSettingsSurface } from './SettingsSurface';
 
 export type FoliaPanelTab = 'now' | 'queue' | 'library' | 'settings';
 
@@ -31,11 +32,13 @@ export function FoliaUnifiedPanel({
     onOpenChange,
     presentation = 'embedded',
     onNavigateHome = noop,
+    extraSettings,
 }: FoliaUnifiedPanelProps) {
     const { actions, isDaylight, preferences, resolvedTheme, snapshot, tracks } = useFoliaPlayer();
     const [uncontrolledOpen, setUncontrolledOpen] = useState(true);
     const isOpen = open ?? uncontrolledOpen;
     const [tab, setTab] = useState<PanelTab>(() => panelTabFor(initialTab));
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const queueScrollRef = useRef<HTMLDivElement>(null);
     const songs = useMemo(() => tracks.map((track, index) => toUpstreamSong(track, snapshot.duration, index)), [snapshot.duration, tracks]);
     const currentSong = songs[snapshot.activeIndex] ?? null;
@@ -132,6 +135,7 @@ export function FoliaUnifiedPanel({
                     hideToggleButton: false,
                     playbackControlsDisabled: !currentSong,
                     playbackProgress: snapshot.duration > 0 ? snapshot.currentTime / snapshot.duration : 0,
+                    onOpenSettings: () => setSettingsOpen(true),
                 }}
                 queue={{
                     playQueue: songs,
@@ -172,6 +176,7 @@ export function FoliaUnifiedPanel({
                     onToggleDaylight: noop,
                 }}
             /></FoliaI18nScope>
+            <FoliaPlayerSettingsSurface open={settingsOpen} onClose={() => setSettingsOpen(false)} extraSettings={extraSettings} />
         </div>
     );
 }

@@ -16,6 +16,7 @@ import { useFoliaPlayer } from './PlayerProvider';
 export interface FoliaLocalHomeSurfaceProps {
     visible: boolean;
     onNavigateToPlayer: () => void;
+    onOpenSettings?: () => void;
     brandLabel?: string;
 }
 
@@ -32,7 +33,7 @@ const INITIAL_LOCAL_MUSIC_STATE: HomeLocalMusicState = {
 
 const LOCAL_SEARCH_SOURCES: SearchSource[] = ['local'];
 
-export function FoliaLocalHomeSurface({ visible, onNavigateToPlayer, brandLabel }: FoliaLocalHomeSurfaceProps) {
+export function FoliaLocalHomeSurface({ visible, onNavigateToPlayer, onOpenSettings, brandLabel }: FoliaLocalHomeSurfaceProps) {
     const { actions, isDaylight, resolvedTheme, snapshot, tracks } = useFoliaPlayer();
     const [localMusicState, setLocalMusicState] = useState<HomeLocalMusicState>(INITIAL_LOCAL_MUSIC_STATE);
     const localModel = useMemo(() => buildFoliaLocalHomeModel(tracks), [tracks]);
@@ -151,6 +152,7 @@ export function FoliaLocalHomeSurface({ visible, onNavigateToPlayer, brandLabel 
             localMusicState,
             setLocalMusicState,
             onSearchCommitted: noop,
+            onOpenSettings,
             theme: resolvedTheme,
             isDaylight,
             navidromeEnabled: false,
@@ -174,6 +176,7 @@ export function FoliaLocalHomeSurface({ visible, onNavigateToPlayer, brandLabel 
         localModel.localSongs,
         localMusicState,
         onNavigateToPlayer,
+        onOpenSettings,
         openEntityCollection,
         openRoot,
         playAll,

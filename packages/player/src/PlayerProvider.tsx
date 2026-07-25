@@ -41,7 +41,7 @@ export interface FoliaPlayerProviderProps {
     enabled?: boolean;
 }
 
-const PREVIEW_HYDRATION_CONCURRENCY = 3;
+const BACKGROUND_HYDRATION_INTERVAL_MS = 1_000;
 
 const FoliaPlayerContext = createContext<FoliaPlayerContextValue | null>(null);
 
@@ -150,7 +150,7 @@ export function FoliaPlayerProvider({
 
     useEffect(() => {
         const hydrateTrackPreview = host.hydrateTrackPreview;
-        if (!enabled || !hydrateTrackPreview) return;
+        if (!enabled || !preferences.backgroundMetadataEnabled || !hydrateTrackPreview) return;
         const controller = new AbortController();
         const candidates = tracks.filter((track) => (
             track.id !== activeId
@@ -158,11 +158,9 @@ export function FoliaPlayerProvider({
             && !previewHydratedIdsRef.current.has(track.id)
             && !fullyHydratedIdsRef.current.has(track.id)
         ));
-        let nextIndex = 0;
-        const hydrateNext = async () => {
-            while (!controller.signal.aborted) {
-                const track = candidates[nextIndex++];
-                if (!track) return;
+        const hydrateSlowly = async () => {
+            for (const track of candidates) {
+                await abortableDelay(BACKGROUND_HYDRATION_INTERVAL_MS, controller.signal);
                 try {
                     const value = await hydrateTrackPreview(track, controller.signal);
                     if (controller.signal.aborted) value.release?.();
@@ -172,10 +170,9 @@ export function FoliaPlayerProvider({
                 }
             }
         };
-        const workerCount = Math.min(PREVIEW_HYDRATION_CONCURRENCY, candidates.length);
-        void Promise.all(Array.from({ length: workerCount }, () => hydrateNext()));
+        void hydrateSlowly().catch(() => undefined);
         return () => controller.abort();
-    }, [activeId, commitResolvedTrack, enabled, host.hydrateTrackPreview, tracks]);
+    }, [activeId, commitResolvedTrack, enabled, host.hydrateTrackPreview, preferences.backgroundMetadataEnabled, tracks]);
 
     useEffect(() => {
         const liveTrackIds = new Set(tracks.map((track) => track.id));
@@ -308,10 +305,11 @@ export function FoliaPlayerProvider({
         refreshOutputDevices: async () => {
             if (!navigator.mediaDevices?.enumerateDevices) return;
             const devices = await navigator.mediaDevices.enumerateDevices();
-            setOutputDevices(devices.filter((device) => device.kind === 'audiooutput').map((device, index) => ({
+            const nextDevices = devices.filter((device) => device.kind === 'audiooutput').map((device, index) => ({
                 id: device.deviceId,
                 label: device.label || `Output ${index + 1}`,
-            })));
+            }));
+            setOutputDevices((current) => sameOutputDevices(current, nextDevices) ? current : nextDevices);
         },
     }), [analyzer.motion.currentTime, duration, host, libraryRoots, next, onLibraryRootsChange, onTracksChange, pause, play, previous, scanLibrary, scanLibraryRoots, selectTrack, setPreferences, tracks]);
 
@@ -394,4 +392,28 @@ export function useFoliaPlayer(): FoliaPlayerContextValue {
     const context = useContext(FoliaPlayerContext);
     if (!context) throw new Error('Folia player surfaces require FoliaPlayerProvider.');
     return context;
+}
+
+function abortableDelay(delayMs: number, signal: AbortSignal): Promise<void> {
+    return new Promise((resolve, reject) => {
+        if (signal.aborted) {
+            reject(new DOMException('Aborted', 'AbortError'));
+            return;
+        }
+        const timer = window.setTimeout(() => {
+            signal.removeEventListener('abort', abort);
+            resolve();
+        }, delayMs);
+        const abort = () => {
+            window.clearTimeout(timer);
+            reject(new DOMException('Aborted', 'AbortError'));
+        };
+        signal.addEventListener('abort', abort, { once: true });
+    });
+}
+
+function sameOutputDevices(left: FoliaOutputDevice[], right: FoliaOutputDevice[]): boolean {
+    return left.length === right.length && left.every((device, index) => (
+        device.id === right[index]?.id && device.label === right[index]?.label
+    ));
 }

@@ -9,6 +9,7 @@ import { FoliaI18nScope } from './FoliaI18nScope';
 import { FoliaLocalHomeSurface } from './LocalHomeSurface';
 import { useFoliaPlayer } from './PlayerProvider';
 import { FoliaUnifiedPanel } from './UpstreamSurfaces';
+import { FoliaPlayerSettingsSurface } from './SettingsSurface';
 import type { FoliaLoopMode, FoliaTrack } from './types';
 
 // packages/player/src/FullscreenSurface.tsx
@@ -27,6 +28,7 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true, bran
     const [currentLineIndex, setCurrentLineIndex] = useState(-1);
     const [currentView, setCurrentView] = useState<FoliaFullscreenView>('home');
     const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const track = snapshot.activeTrack;
     const lines = track?.lyrics?.lines ?? [];
     const playerState = snapshot.isPlaying
@@ -138,6 +140,7 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true, bran
                 <FoliaLocalHomeSurface
                     visible={currentView === 'home'}
                     onNavigateToPlayer={navigateToPlayer}
+                    onOpenSettings={() => setIsSettingsOpen(true)}
                     brandLabel={brandLabel}
                 />
 
@@ -173,6 +176,7 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true, bran
                         onNavigateHome={navigateToHome}
                     />
                 ) : null}
+                <FoliaPlayerSettingsSurface open={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
             </FoliaI18nScope>
         </section>
     );

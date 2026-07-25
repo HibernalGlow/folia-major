@@ -23,6 +23,19 @@ const playerPackageEn = {
     visualizerBackground: 'Visualizer background',
     outputDevice: 'Audio output',
     outputDefault: 'System default',
+    settings: 'Player settings',
+    settingsDescription: 'Playback, metadata, lyrics, and visualizer options',
+    playbackSettings: 'Playback',
+    visualizerSettings: 'Lyrics and visualizer',
+    backgroundMetadata: 'Background metadata extraction',
+    backgroundMetadataDescription: 'Slowly reads metadata and covers for one non-playing track at a time. You can turn this off at any time.',
+    replayGain: 'ReplayGain',
+    refreshOutputDevices: 'Refresh audio devices',
+    lyricsDisplay: 'Lyrics display',
+    showTranslation: 'Show translation',
+    showHarmony: 'Show harmony lyrics',
+    lyricsFontScale: 'Lyrics size',
+    subtitleFontScale: 'Translation size',
 } as const;
 
 const playerPackageZh = {
@@ -46,6 +59,19 @@ const playerPackageZh = {
     visualizerBackground: '可视化背景',
     outputDevice: '音频输出',
     outputDefault: '系统默认',
+    settings: '播放器设置',
+    settingsDescription: '播放、元数据、歌词与视觉效果',
+    playbackSettings: '播放',
+    visualizerSettings: '歌词与视觉效果',
+    backgroundMetadata: '后台提取元数据',
+    backgroundMetadataDescription: '低速逐首读取非当前曲目的元数据和封面，随时可以关闭。',
+    replayGain: 'ReplayGain',
+    refreshOutputDevices: '刷新音频设备',
+    lyricsDisplay: '歌词显示',
+    showTranslation: '显示翻译',
+    showHarmony: '显示和声歌词',
+    lyricsFontScale: '歌词大小',
+    subtitleFontScale: '翻译大小',
 } as const;
 
 export const foliaPlayerLocales = {
