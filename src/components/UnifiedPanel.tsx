@@ -32,7 +32,7 @@ type UnifiedPanelPlaybackProps = {
     currentSong: SongResult | null;
     onAlbumSelect: (song: SongResult, album: Album) => void;
     onSelectArtist: (song: SongResult, artist: Artist) => void;
-    loopMode: 'off' | 'all' | 'one';
+    loopMode: 'off' | 'all' | 'one' | 'random';
     onToggleLoop: () => void;
     onLike: () => void;
     isLiked: boolean;
@@ -739,6 +739,7 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
                                     {tabs.map((tab) => (
                                         <button
                                             key={tab.id}
+                                            data-folia-panel-tab={tab.id}
                                             onClick={() => onTabChange(tab.id)}
                                             className={`flex-1 py-2 flex items-center justify-center transition-all rounded-lg
                                                 ${currentTab === tab.id ? `${activeTabBg} shadow-sm` : 'opacity-40 hover:opacity-100'}`}

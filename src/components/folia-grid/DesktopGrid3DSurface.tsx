@@ -215,6 +215,7 @@ export const DesktopGrid3DSurface: React.FC<DesktopGrid3DSurfaceProps> = ({
                     {actions.map(action => (
                         <button
                             key={action.id}
+                            data-folia-grid-action={action.id}
                             onClick={action.onClick}
                             disabled={action.disabled}
                             title={action.title}

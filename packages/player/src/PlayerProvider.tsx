@@ -232,8 +232,22 @@ export function FoliaPlayerProvider({
         await audioRef.current.play();
     }, [activeTrack, analyzer]);
     const pause = useCallback(() => audioRef.current?.pause(), []);
-    const next = useCallback(() => selectTrack(activeIndex + 1, isPlaying), [activeIndex, isPlaying, selectTrack]);
-    const previous = useCallback(() => selectTrack(activeIndex - 1, isPlaying), [activeIndex, isPlaying, selectTrack]);
+    const selectRandomTrack = useCallback((autoplay = isPlaying) => {
+        if (tracks.length < 2) {
+            selectTrack(0, autoplay);
+            return;
+        }
+        const offset = 1 + Math.floor(Math.random() * (tracks.length - 1));
+        selectTrack((activeIndex + offset) % tracks.length, autoplay);
+    }, [activeIndex, isPlaying, selectTrack, tracks.length]);
+    const next = useCallback(() => {
+        if (preferences.loopMode === 'random') selectRandomTrack(isPlaying);
+        else selectTrack(activeIndex + 1, isPlaying);
+    }, [activeIndex, isPlaying, preferences.loopMode, selectRandomTrack, selectTrack]);
+    const previous = useCallback(() => {
+        if (preferences.loopMode === 'random') selectRandomTrack(isPlaying);
+        else selectTrack(activeIndex - 1, isPlaying);
+    }, [activeIndex, isPlaying, preferences.loopMode, selectRandomTrack, selectTrack]);
 
     const setPreferences = useCallback((patch: Partial<FoliaPlayerPreferences>) => {
         onPreferencesChange?.({ ...preferences, ...patch });
@@ -268,7 +282,15 @@ export function FoliaPlayerProvider({
         },
         selectTrack,
         removeTrack: (index: number) => onTracksChange(tracks.filter((_, trackIndex) => trackIndex !== index)),
-        shuffle: () => onTracksChange([...tracks].sort(() => Math.random() - 0.5)),
+        shuffle: () => {
+            if (tracks.length < 2) return;
+            const shuffledTracks = [...tracks];
+            for (let index = shuffledTracks.length - 1; index > 0; index -= 1) {
+                const swapIndex = Math.floor(Math.random() * (index + 1));
+                [shuffledTracks[index], shuffledTracks[swapIndex]] = [shuffledTracks[swapIndex], shuffledTracks[index]];
+            }
+            onTracksChange(shuffledTracks);
+        },
         scanLibrary,
         addLibraryRoot: async (root?: string) => {
             const selected = root?.trim() || await host.pickLibraryRoot?.();
@@ -344,6 +366,13 @@ export function FoliaPlayerProvider({
                     if (preferences.loopMode === 'one') {
                         actions.seek(0);
                         void play();
+                    } else if (preferences.loopMode === 'random') {
+                        if (tracks.length < 2) {
+                            actions.seek(0);
+                            void play();
+                        } else {
+                            selectRandomTrack(true);
+                        }
                     } else if (preferences.loopMode === 'all' || activeIndex < tracks.length - 1) {
                         selectTrack(activeIndex + 1, true);
                     } else {

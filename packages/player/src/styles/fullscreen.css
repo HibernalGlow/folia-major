@@ -26,7 +26,7 @@
 }
 
 .folia-fullscreen [data-folia-grid-controls] {
-    top: -5rem;
+    top: -4.75rem;
 }
 
 .folia-fullscreen [data-folia-grid-controls='actions'] {
@@ -34,9 +34,9 @@
     flex-wrap: nowrap;
 }
 
-@container (max-width: 38rem) {
+@container (max-width: 46rem) {
     .folia-fullscreen [data-folia-grid-controls='actions'] {
-        top: -2.25rem;
+        top: -1.5rem;
         right: auto;
         left: 50%;
         max-width: calc(100% - 2rem);

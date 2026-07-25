@@ -5,7 +5,7 @@ import type { VisualizerTuningBundle } from '../../../src/components/visualizer/
 
 // packages/player/src/types.ts
 
-export type FoliaLoopMode = 'off' | 'all' | 'one';
+export type FoliaLoopMode = 'off' | 'all' | 'one' | 'random';
 export type FoliaReplayGainMode = 'off' | 'track' | 'album';
 
 export interface FoliaTrack {

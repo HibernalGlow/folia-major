@@ -227,7 +227,7 @@ function panelTabFor(tab: FoliaPanelTab): PanelTab {
 }
 
 function nextLoopMode(mode: FoliaLoopMode): FoliaLoopMode {
-    return mode === 'off' ? 'all' : mode === 'all' ? 'one' : 'off';
+    return mode === 'off' ? 'all' : mode === 'all' ? 'one' : mode === 'one' ? 'random' : 'off';
 }
 
 function toUpstreamSong(track: FoliaTrack, fallbackDuration: number, index: number): SongResult {

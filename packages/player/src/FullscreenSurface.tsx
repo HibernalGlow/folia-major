@@ -190,7 +190,7 @@ function FullscreenEmptyState({ track, error }: { track: FoliaTrack | null; erro
 }
 
 function nextLoopMode(mode: FoliaLoopMode): FoliaLoopMode {
-    return mode === 'off' ? 'all' : mode === 'all' ? 'one' : 'off';
+    return mode === 'off' ? 'all' : mode === 'all' ? 'one' : mode === 'one' ? 'random' : 'off';
 }
 
 function findCurrentLineIndex(lines: Array<{ startTime: number }>, time: number): number {

@@ -243,6 +243,7 @@ const QueueTab: React.FC<QueueTabProps> = ({
                         )}
                         {onShuffle && (
                             <button
+                                data-folia-queue-shuffle
                                 onClick={onShuffle}
                                 className="p-1.5 rounded-md hover:bg-white/10 transition-colors opacity-60 hover:opacity-100"
                                 title={t('queue.shuffle')}
