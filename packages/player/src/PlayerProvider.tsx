@@ -294,7 +294,11 @@ export function FoliaPlayerProvider({
         scanLibrary,
         addLibraryRoot: async (root?: string) => {
             const selected = root?.trim() || await host.pickLibraryRoot?.();
-            if (!selected || libraryRoots.includes(selected)) return;
+            if (!selected) return;
+            if (libraryRoots.includes(selected)) {
+                await scanLibraryRoots(libraryRoots);
+                return;
+            }
             const nextRoots = [...libraryRoots, selected];
             onLibraryRootsChange?.(nextRoots);
             await scanLibraryRoots(nextRoots);
