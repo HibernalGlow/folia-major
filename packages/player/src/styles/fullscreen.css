@@ -21,13 +21,28 @@
     z-index: 40;
 }
 
+.folia-fullscreen [data-folia-component='Grid3D'] {
+    container-type: inline-size;
+}
+
 .folia-fullscreen [data-folia-grid-controls] {
-    top: -5.75rem;
+    top: -5rem;
 }
 
 .folia-fullscreen [data-folia-grid-controls='actions'] {
     max-width: none;
     flex-wrap: nowrap;
+}
+
+@container (max-width: 38rem) {
+    .folia-fullscreen [data-folia-grid-controls='actions'] {
+        top: -2.25rem;
+        right: auto;
+        left: 50%;
+        max-width: calc(100% - 2rem);
+        transform: translateX(-50%);
+        justify-content: center;
+    }
 }
 
 .folia-fullscreen__empty {

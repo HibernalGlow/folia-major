@@ -669,7 +669,7 @@ export const Grid3D: React.FC<Grid3DProps> = (props) => {
                     </div>
 
                     {/* Right Search Bar */}
-                    <div className={`flex justify-end order-2 md:order-none ${localOnly ? '-translate-y-3' : ''}`}>
+                    <div data-folia-home-search className={`flex justify-end order-2 md:order-none ${localOnly ? '-translate-y-3' : ''}`}>
                         <form onSubmit={handleSearch} className="relative w-full md:w-56 transition-all focus-within:md:w-72">
                             {isSearchingActive ? (
                                 <Loader2 className="absolute left-3 top-1/2 w-4 h-4 animate-spin opacity-40 -mt-2" />

@@ -640,6 +640,7 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
                 <AnimatePresence>
                     {isOpen && (
                         <motion.div
+                            data-folia-panel-card
                             initial={{ opacity: 0, scale: 0.9, originY: 1, originX: 1 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}

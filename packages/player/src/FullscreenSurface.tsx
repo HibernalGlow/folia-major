@@ -8,6 +8,7 @@ import { PlayerState } from '../../../src/types';
 import { FoliaI18nScope } from './FoliaI18nScope';
 import { FoliaLocalHomeSurface } from './LocalHomeSurface';
 import { useFoliaPlayer } from './PlayerProvider';
+import { FoliaUnifiedPanel } from './UpstreamSurfaces';
 import type { FoliaLoopMode, FoliaTrack } from './types';
 
 // packages/player/src/FullscreenSurface.tsx
@@ -25,6 +26,7 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true, bran
     const { actions, isDaylight, motion, preferences, resolvedTheme, snapshot } = useFoliaPlayer();
     const [currentLineIndex, setCurrentLineIndex] = useState(-1);
     const [currentView, setCurrentView] = useState<FoliaFullscreenView>('home');
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
     const track = snapshot.activeTrack;
     const lines = track?.lyrics?.lines ?? [];
     const playerState = snapshot.isPlaying
@@ -56,6 +58,10 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true, bran
     useEffect(() => {
         if (!track) setCurrentView('home');
     }, [track]);
+
+    useEffect(() => {
+        if (currentView !== 'player') setIsPanelOpen(false);
+    }, [currentView]);
 
     const navigateToHome = useCallback(() => setCurrentView('home'), []);
     const navigateToPlayer = useCallback(() => setCurrentView('player'), []);
@@ -156,6 +162,15 @@ export function FoliaFullscreenSurface({ className = '', showChrome = true, bran
                         theme={resolvedTheme}
                         isDaylight={isDaylight}
                         controlsDisabled={snapshot.isLoading}
+                    />
+                ) : null}
+
+                {showChrome && track && currentView === 'player' ? (
+                    <FoliaUnifiedPanel
+                        presentation="overlay"
+                        open={isPanelOpen}
+                        onOpenChange={setIsPanelOpen}
+                        onNavigateHome={navigateToHome}
                     />
                 ) : null}
             </FoliaI18nScope>

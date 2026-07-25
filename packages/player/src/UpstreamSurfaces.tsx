@@ -14,6 +14,8 @@ export interface FoliaUnifiedPanelProps {
     initialTab?: FoliaPanelTab;
     open?: boolean;
     onOpenChange?: (open: boolean) => void;
+    presentation?: 'embedded' | 'overlay';
+    onNavigateHome?: () => void;
     onOpenFullscreen?: () => void;
     extraSettings?: ReactNode;
 }
@@ -22,7 +24,14 @@ export interface FoliaUnifiedPanelProps {
  * The standard Folia player panel, rendered by the upstream component itself.
  * Xiranite deliberately only supplies a controlled playback and storage adapter.
  */
-export function FoliaUnifiedPanel({ className = '', initialTab = 'now', open, onOpenChange }: FoliaUnifiedPanelProps) {
+export function FoliaUnifiedPanel({
+    className = '',
+    initialTab = 'now',
+    open,
+    onOpenChange,
+    presentation = 'embedded',
+    onNavigateHome = noop,
+}: FoliaUnifiedPanelProps) {
     const { actions, isDaylight, preferences, resolvedTheme, snapshot, tracks } = useFoliaPlayer();
     const [uncontrolledOpen, setUncontrolledOpen] = useState(true);
     const isOpen = open ?? uncontrolledOpen;
@@ -56,18 +65,23 @@ export function FoliaUnifiedPanel({ className = '', initialTab = 'now', open, on
         if (open === undefined) setUncontrolledOpen(nextOpen);
         onOpenChange?.(nextOpen);
     }, [isOpen, onOpenChange, open]);
+    const embedded = presentation === 'embedded';
 
     return (
-        <div className={`folia-upstream-panel relative h-full min-h-0 w-full overflow-visible rounded-3xl bg-transparent ${className}`.trim()} data-folia-surface="unified">
+        <div
+            className={`folia-upstream-panel ${embedded ? 'relative h-full min-h-0 w-full rounded-3xl' : 'pointer-events-none absolute inset-0 z-[55]'} overflow-visible bg-transparent ${className}`.trim()}
+            data-folia-surface="unified"
+            data-folia-panel-presentation={presentation}
+        >
             <FoliaI18nScope><UpstreamUnifiedPanel
-                embedded
+                embedded={embedded}
                 playback={{
                     isOpen,
                     currentTab: tab,
                     onTabChange: setTab,
                     onToggle: toggleOpen,
-                    onNavigateHome: noop,
-                    onNavigateHomeDirect: noop,
+                    onNavigateHome,
+                    onNavigateHomeDirect: onNavigateHome,
                     coverUrl: snapshot.activeTrack?.coverUrl ?? null,
                     currentSong,
                     onAlbumSelect: noop,
