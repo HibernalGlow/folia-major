@@ -23,6 +23,7 @@
   },
   "peerDependencies": {
     "i18next": ">=24",
+    "lucide-react": ">=0.468.0",
     "react": ">=19",
     "react-dom": ">=19",
     "react-i18next": ">=15"
@@ -34,7 +35,6 @@
     "@react-three/fiber": "^9.6.1",
     "@xmldom/xmldom": "^0.9.10",
     "framer-motion": "^12.42.2",
-    "lucide-react": "^1.25.0",
     "react-colorful": "^5.8.0",
     "react-window": "^2.2.7",
     "three": "^0.185.1",
