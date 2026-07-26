@@ -90,7 +90,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
     const inputBg = colorWithAlpha(theme.backgroundColor, isDaylight ? 0.42 : 0.52);
 
     return (
-        <div className="rounded-[24px] border p-4 space-y-4" style={{ backgroundColor: controlCardBg, borderColor }}>
+        <div className="rounded-[24px] border p-4 space-y-4" data-folia-background-url-settings style={{ backgroundColor: controlCardBg, borderColor }}>
             <div className="space-y-1">
                 <div className="text-sm font-medium" style={{ color: theme.primaryColor }}>
                     {t('options.urlBackgroundSettings')}
@@ -106,6 +106,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
                     {urlBackgroundList.map(item => (
                         <div
                             key={item.id}
+                            data-folia-background-url-item={item.id}
                             className="rounded-2xl border p-3 transition-all"
                             style={{
                                 borderColor: item.id === urlBackgroundSelectedId ? theme.accentColor : borderColor,
@@ -117,6 +118,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
                             {editingId === item.id ? (
                                 <div className="space-y-2">
                                     <input
+                                        data-folia-background-url-field="url"
                                         type="url"
                                         value={draftUrl}
                                         onChange={e => setDraftUrl(e.target.value)}
@@ -129,6 +131,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
                                         }}
                                     />
                                     <input
+                                        data-folia-background-url-field="note"
                                         type="text"
                                         value={draftNote}
                                         onChange={e => setDraftNote(e.target.value)}
@@ -143,6 +146,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
                                     <div className="flex gap-2 justify-end">
                                         <button
                                             type="button"
+                                            data-folia-background-url-action="cancel"
                                             onClick={resetDraft}
                                             className="h-8 w-8 rounded-full border flex items-center justify-center transition-colors hover:bg-white/10"
                                             style={{ borderColor, color: theme.secondaryColor }}
@@ -151,6 +155,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
                                         </button>
                                         <button
                                             type="button"
+                                            data-folia-background-url-action="save"
                                             onClick={handleSaveEdit}
                                             disabled={!draftUrl.trim()}
                                             className="h-8 w-8 rounded-full border flex items-center justify-center transition-colors hover:bg-white/10 disabled:opacity-40"
@@ -164,6 +169,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
                                 <div className="flex items-center gap-3">
                                     <button
                                         type="button"
+                                        data-folia-background-url-action="select"
                                         onClick={() => handleSelect(item.id)}
                                         className="flex-1 text-left min-w-0"
                                     >
@@ -177,6 +183,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
                                     <div className="flex items-center gap-1 shrink-0">
                                         <button
                                             type="button"
+                                            data-folia-background-url-action="edit"
                                             onClick={() => handleStartEdit(item)}
                                             className="h-7 w-7 rounded-full border flex items-center justify-center transition-colors hover:bg-white/10"
                                             style={{ borderColor, color: theme.secondaryColor }}
@@ -185,6 +192,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
                                         </button>
                                         <button
                                             type="button"
+                                            data-folia-background-url-action="delete"
                                             onClick={() => handleDelete(item.id)}
                                             className="h-7 w-7 rounded-full border flex items-center justify-center transition-colors hover:bg-red-500/10"
                                             style={{ borderColor, color: theme.secondaryColor }}
@@ -203,6 +211,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
             {isAdding ? (
                 <div className="space-y-2 rounded-2xl border p-3" style={{ borderColor, backgroundColor: itemBg }}>
                     <input
+                        data-folia-background-url-field="url"
                         type="url"
                         value={draftUrl}
                         onChange={e => setDraftUrl(e.target.value)}
@@ -216,6 +225,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
                         }}
                     />
                     <input
+                        data-folia-background-url-field="note"
                         type="text"
                         value={draftNote}
                         onChange={e => setDraftNote(e.target.value)}
@@ -230,6 +240,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
                     <div className="flex gap-2 justify-end">
                         <button
                             type="button"
+                            data-folia-background-url-action="cancel"
                             onClick={resetDraft}
                             className="h-8 w-8 rounded-full border flex items-center justify-center transition-colors hover:bg-white/10"
                             style={{ borderColor, color: theme.secondaryColor }}
@@ -238,6 +249,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
                         </button>
                         <button
                             type="button"
+                            data-folia-background-url-action="save"
                             onClick={handleAdd}
                             disabled={!draftUrl.trim()}
                             className="h-8 w-8 rounded-full border flex items-center justify-center transition-colors hover:bg-white/10 disabled:opacity-40"
@@ -250,6 +262,7 @@ const UrlBackgroundSettingsCard: React.FC<UrlBackgroundSettingsCardProps> = ({
             ) : (
                 <button
                     type="button"
+                    data-folia-background-url-action="add"
                     onClick={() => {
                         setDraftUrl('');
                         setDraftNote('');

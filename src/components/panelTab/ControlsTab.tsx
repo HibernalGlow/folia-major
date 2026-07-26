@@ -2,15 +2,29 @@ import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Repeat, Repeat1, Repeat2 as RepeatOff, Shuffle, Heart, Sparkles, Sparkle, ArrowUpDown, Check, Copy, RefreshCw, Cone, Layers, Sun, Moon, Settings, Volume2, Volume1, VolumeX } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { type LatentBackgroundDisplayMode, Theme, ThemeMode, type VisualizerBackgroundMode, VisualizerMode } from '../../types';
+import {
+    DEFAULT_LATENT_BACKGROUND_TUNING,
+    DEFAULT_MONET_BACKGROUND_TUNING,
+    DEFAULT_NOMAND_BACKGROUND_TUNING,
+    type LatentBackgroundDisplayMode,
+    Theme,
+    ThemeMode,
+    type VisualizerBackgroundMode,
+    VisualizerMode,
+} from '../../types';
 import type { ThemeSourceModel } from '../../hooks/themeControllerState';
 import { getVisualizerModeLabel, VISUALIZER_REGISTRY } from '../visualizer/registry';
-import { getVisualizerBackgroundModeLabel, VISUALIZER_BACKGROUND_REGISTRY } from '../visualizer/backgrounds/registry';
+import {
+    DEFAULT_VISUALIZER_BACKGROUND_MODE,
+    getVisualizerBackgroundModeLabel,
+    VISUALIZER_BACKGROUND_REGISTRY,
+} from '../visualizer/backgrounds/registry';
 import { useThemeQuickEditorStore } from '../../stores/useThemeQuickEditorStore';
 import { resolveVisualizerBackgroundMode, useSettingsUiStore } from '../../stores/useSettingsUiStore';
 import { syncNow } from '../../services/sync/syncCoordinator';
 import { isSyncConfigured } from '../../services/sync/syncConfig';
 import QuickEffectPicker from './QuickEffectPicker';
+import type { VisualizerBackgroundActions, VisualizerBackgroundConfig } from '../visualizer/backgrounds/definition';
 
 // Controls tab composes compact visualizer and background pickers without changing player state flow.
 
@@ -32,6 +46,8 @@ interface ControlsTabProps {
     daylightTheme: Theme;
     visualizerMode: VisualizerMode;
     onVisualizerModeChange: (mode: VisualizerMode) => void;
+    backgroundConfig?: VisualizerBackgroundConfig;
+    backgroundActions?: VisualizerBackgroundActions;
     useCoverColorBg: boolean;
     onToggleCoverColorBg: (enable: boolean) => void;
     isDaylight: boolean;
@@ -63,6 +79,8 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
     daylightTheme,
     visualizerMode,
     onVisualizerModeChange,
+    backgroundConfig,
+    backgroundActions,
     useCoverColorBg,
     onToggleCoverColorBg,
     isDaylight,
@@ -79,19 +97,33 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
     const openThemeQuickEditor = useThemeQuickEditorStore(state => state.openEditor);
     const openSettings = useSettingsUiStore(state => state.openSettings);
     const statusSetter = useSettingsUiStore(state => state.statusSetter);
-    const visualizerBackgroundMode = useSettingsUiStore(state => state.visualizerBackgroundMode);
-    const monetBackgroundTuning = useSettingsUiStore(state => state.monetBackgroundTuning);
-    const setMonetBackgroundTuning = useSettingsUiStore(state => state.handleSetMonetBackgroundTuning);
-    const nomandBackgroundTuning = useSettingsUiStore(state => state.nomandBackgroundTuning);
-    const setNomandBackgroundTuning = useSettingsUiStore(state => state.handleSetNomandBackgroundTuning);
-    const latentBackgroundTuning = useSettingsUiStore(state => state.latentBackgroundTuning);
-    const setLatentBackgroundTuning = useSettingsUiStore(state => state.handleSetLatentBackgroundTuning);
+    const storedVisualizerBackgroundMode = useSettingsUiStore(state => state.visualizerBackgroundMode);
+    const storedMonetBackgroundTuning = useSettingsUiStore(state => state.monetBackgroundTuning);
+    const setStoredMonetBackgroundTuning = useSettingsUiStore(state => state.handleSetMonetBackgroundTuning);
+    const storedNomandBackgroundTuning = useSettingsUiStore(state => state.nomandBackgroundTuning);
+    const setStoredNomandBackgroundTuning = useSettingsUiStore(state => state.handleSetNomandBackgroundTuning);
+    const storedLatentBackgroundTuning = useSettingsUiStore(state => state.latentBackgroundTuning);
+    const setStoredLatentBackgroundTuning = useSettingsUiStore(state => state.handleSetLatentBackgroundTuning);
     const [sliderVolume, setSliderVolume] = useState(isMuted ? 0 : volume);
     const [themeSyncState, setThemeSyncState] = useState<'idle' | 'syncing' | 'complete'>('idle');
     const isDraggingRef = useRef(false);
     const themeSyncCompleteTimerRef = useRef<number | null>(null);
     const pendingVolumeRef = useRef(sliderVolume);
-    const setVisualizerBackgroundMode = useSettingsUiStore(state => state.handleSetVisualizerBackgroundMode);
+    const setStoredVisualizerBackgroundMode = useSettingsUiStore(state => state.handleSetVisualizerBackgroundMode);
+    const visualizerBackgroundMode = backgroundConfig?.mode ?? storedVisualizerBackgroundMode;
+    const monetBackgroundTuning = backgroundConfig
+        ? backgroundConfig.monet?.tuning ?? DEFAULT_MONET_BACKGROUND_TUNING
+        : storedMonetBackgroundTuning;
+    const nomandBackgroundTuning = backgroundConfig
+        ? backgroundConfig.nomand?.tuning ?? DEFAULT_NOMAND_BACKGROUND_TUNING
+        : storedNomandBackgroundTuning;
+    const latentBackgroundTuning = backgroundConfig
+        ? backgroundConfig.latent?.tuning ?? DEFAULT_LATENT_BACKGROUND_TUNING
+        : storedLatentBackgroundTuning;
+    const setVisualizerBackgroundMode = backgroundActions?.onModeChange ?? setStoredVisualizerBackgroundMode;
+    const setMonetBackgroundTuning = backgroundActions?.monet?.onTuningChange ?? setStoredMonetBackgroundTuning;
+    const setNomandBackgroundTuning = backgroundActions?.nomand?.onTuningChange ?? setStoredNomandBackgroundTuning;
+    const setLatentBackgroundTuning = backgroundActions?.latent?.onTuningChange ?? setStoredLatentBackgroundTuning;
 
     useEffect(() => () => {
         if (themeSyncCompleteTimerRef.current !== null) {
@@ -178,7 +210,9 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
     const themeDisplayName = formatThemeDisplayName(activeThemeSource.label || theme.name);
     const aiSwatchColor = aiThemeSource.theme?.backgroundColor ?? 'rgba(114,119,134,0.4)';
     const customSwatchColor = customThemeSource.theme?.accentColor ?? 'rgba(114,119,134,0.4)';
-    const resolvedVisualizerBackgroundMode = resolveVisualizerBackgroundMode(visualizerBackgroundMode, visualizerMode);
+    const resolvedVisualizerBackgroundMode = backgroundConfig
+        ? backgroundConfig.mode ?? DEFAULT_VISUALIZER_BACKGROUND_MODE
+        : resolveVisualizerBackgroundMode(visualizerBackgroundMode, visualizerMode);
     const visualizerOptions = VISUALIZER_REGISTRY.map(entry => ({
         value: entry.mode,
         label: getVisualizerModeLabel(entry.mode, t),
@@ -324,6 +358,7 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
                             />
 
                             <button
+                                data-folia-theme-action="animation-intensity"
                                 onClick={toggleAnimationIntensity}
                                 className={`px-3 py-1 text-[10px] font-bold capitalize rounded-lg transition-all ${activeOptionBg}`}
                             >
@@ -359,7 +394,7 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
                                     <Settings size={13} />
                                 </button>
                             </div>
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1" data-folia-background-quick-controls>
                                 <QuickEffectPicker<VisualizerBackgroundMode>
                                     value={resolvedVisualizerBackgroundMode}
                                     options={backgroundOptions}
@@ -370,6 +405,7 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
                                 />
                                 {resolvedVisualizerBackgroundMode === 'common' && (
                                     <button
+                                        data-folia-background-quick="common-cover-color"
                                         onClick={() => onToggleCoverColorBg(!useCoverColorBg)}
                                         className={`p-1 rounded-md transition-all ${useCoverColorBg ? 'text-blue-400' : 'opacity-40 hover:opacity-100'}`}
                                         title={useCoverColorBg ? t('theme.addCoverColor') : t('theme.useDefaultColor')}
@@ -380,6 +416,7 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
                                 {resolvedVisualizerBackgroundMode === 'monet' && (
                                     <button
                                         type="button"
+                                        data-folia-background-quick="monet-layout"
                                         onClick={() => setMonetBackgroundTuning({ backgroundLayout: isMonetFullOverlay ? 'half-pane-gradient' : 'full-overlay' })}
                                         className={`rounded-md px-1.5 py-1 text-[10px] font-bold transition-all ${activeOptionBg}`}
                                         title={`${t('options.monetBackgroundLayout')}: ${monetLayoutLabel}`}
@@ -392,6 +429,7 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
                                 {resolvedVisualizerBackgroundMode === 'nomand' && (
                                     <button
                                         type="button"
+                                        data-folia-background-quick="nomand-overlay"
                                         onClick={() => setNomandBackgroundTuning({
                                             overlayEnabled: !nomandBackgroundTuning.overlayEnabled,
                                         })}
@@ -407,6 +445,7 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
                                     <>
                                         <button
                                             type="button"
+                                            data-folia-background-quick="latent-display"
                                             onClick={cycleLatentDisplayMode}
                                             className={`rounded-md px-1.5 py-1 text-[10px] font-bold transition-all ${activeOptionBg}`}
                                             title={`${t('options.latentDisplayMode')}: ${latentDisplayLabel}`}
@@ -416,6 +455,7 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
                                         </button>
                                         <button
                                             type="button"
+                                            data-folia-background-quick="latent-overlay"
                                             onClick={() => setLatentBackgroundTuning({
                                                 overlayEnabled: !latentBackgroundTuning.overlayEnabled,
                                             })}
@@ -463,6 +503,7 @@ const ControlsTab: React.FC<ControlsTabProps> = ({
                     <div className="flex items-center gap-2">
                         <button
                             type="button"
+                            data-folia-theme-action="toggle-daylight"
                             onClick={onToggleDaylight}
                             className={`rounded-md p-1 transition-all ${isDaylight ? 'text-amber-500' : 'text-blue-300'}`}
                             title={isDaylight ? t('theme.switchToDark') : t('theme.switchToLight')}

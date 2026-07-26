@@ -247,6 +247,7 @@ export const MonetBackgroundSettingsCard: React.FC<MonetBackgroundSettingsCardPr
                     <div className="flex flex-wrap items-center gap-2">
                         <button
                             type="button"
+                            data-folia-background-monet-upload
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isLoadingMonetBackgroundImage || !onUploadMonetBackgroundImage}
                             className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm transition-all disabled:cursor-not-allowed disabled:opacity-45"

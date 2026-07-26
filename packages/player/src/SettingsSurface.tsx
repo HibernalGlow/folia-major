@@ -13,6 +13,7 @@ import { FoliaLabSettingsSection } from './LabSettingsSection';
 import { useFoliaPlayer } from './PlayerProvider';
 import { SettingsCard, SettingsSwitch } from './SettingsControls';
 import { FoliaVisualizerSettings } from './VisualizerSettings';
+import { useFoliaVisualizerBackgroundPreferences } from './useFoliaVisualizerBackgroundPreferences';
 
 type SettingsSection = 'playback' | 'visualizer' | 'lab';
 
@@ -33,6 +34,7 @@ export function FoliaPlayerSettingsSurface(props: FoliaPlayerSettingsSurfaceProp
 function SettingsDialog({ onClose, extraSettings }: FoliaPlayerSettingsSurfaceProps) {
     const { t } = useTranslation();
     const { actions, outputDevices, preferences, resolvedTheme } = useFoliaPlayer();
+    const { backgroundActions, backgroundConfig } = useFoliaVisualizerBackgroundPreferences();
     const [section, setSection] = useState<SettingsSection>('playback');
     const refreshOutputDevices = actions.refreshOutputDevices;
 
@@ -133,7 +135,12 @@ function SettingsDialog({ onClose, extraSettings }: FoliaPlayerSettingsSurfacePr
                                     </select>
                                 </SettingsCard>
                                 <SettingsCard icon={<Sparkles size={18} />} title={t('playerPackage.visualizerBackground')}>
-                                    <select className="h-10 w-full rounded-lg border border-current/15 bg-transparent px-3" value={preferences.background.mode ?? 'latent'} onChange={(event) => actions.setPreferences({ background: { ...preferences.background, mode: event.target.value as VisualizerBackgroundMode } })}>
+                                    <select
+                                        data-folia-background-mode-control="settings"
+                                        className="h-10 w-full rounded-lg border border-current/15 bg-transparent px-3"
+                                        value={backgroundConfig.mode ?? 'latent'}
+                                        onChange={(event) => backgroundActions.onModeChange?.(event.target.value as VisualizerBackgroundMode)}
+                                    >
                                         {VISUALIZER_BACKGROUND_REGISTRY.map((entry) => <option key={entry.mode} value={entry.mode}>{getVisualizerBackgroundModeLabel(entry.mode, t)}</option>)}
                                     </select>
                                 </SettingsCard>

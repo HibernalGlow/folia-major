@@ -11,7 +11,7 @@ const VisualizerBackgroundRenderer: React.FC<VisualizerBackgroundRenderProps> = 
     }
 
     const mode = props.config?.mode ?? DEFAULT_VISUALIZER_BACKGROUND_MODE;
-    return getVisualizerBackgroundRegistryEntry(mode).render(props);
+    return <div className="contents" data-folia-background-mode={mode}>{getVisualizerBackgroundRegistryEntry(mode).render(props)}</div>;
 };
 
 export default VisualizerBackgroundRenderer;

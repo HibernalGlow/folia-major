@@ -18,6 +18,7 @@ import type { OnlineLyricsState } from '../types';
 import type { AudioQualityPreference } from '../types/onlineMusic';
 import type { ThemeSourceModel } from '../hooks/themeControllerState';
 import { getPlaybackSourceRef, getPlaybackSongSource, hasMixedPlaybackSources } from '../utils/appPlaybackGuards';
+import type { VisualizerBackgroundActions, VisualizerBackgroundConfig } from './visualizer/backgrounds/definition';
 
 export type PanelTab = 'cover' | 'controls' | 'queue' | 'account' | 'local' | 'navi' | 'onlineLyrics';
 
@@ -51,6 +52,8 @@ type UnifiedPanelPlaybackProps = {
     daylightTheme: Theme;
     visualizerMode: VisualizerMode;
     onVisualizerModeChange: (mode: VisualizerMode) => void;
+    backgroundConfig?: VisualizerBackgroundConfig;
+    backgroundActions?: VisualizerBackgroundActions;
     onMatchOnline: () => void;
     onUpdateLocalLyrics: (content: string, isTranslation: boolean, fileName?: string) => void;
     onChangeLyricsSource: (source: 'local' | 'embedded' | 'online') => void;
@@ -79,15 +82,7 @@ type UnifiedPanelPlaybackProps = {
     isStageContext?: boolean;
     playbackControlsDisabled?: boolean;
     playbackProgress?: number;
-    coverPlayback?: Pick<CoverTabPlayback,
-        'currentTime'
-        | 'duration'
-        | 'lyrics'
-        | 'lyricOffsetMs'
-        | 'canGoPrevious'
-        | 'canGoNext'
-        | 'onSeek'
-    >;
+    coverPlayback?: Pick<CoverTabPlayback, 'currentTime' | 'duration' | 'lyrics' | 'lyricOffsetMs' | 'canGoPrevious' | 'canGoNext' | 'onSeek'>;
     onOpenSettings?: () => void;
     onOpenCommandPalette?: () => void;
     isCommandPaletteOpen?: boolean;
@@ -179,6 +174,8 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
         daylightTheme,
         visualizerMode,
         onVisualizerModeChange,
+        backgroundConfig,
+        backgroundActions,
         onMatchOnline,
         onUpdateLocalLyrics,
         onChangeLyricsSource,
@@ -828,6 +825,8 @@ const UnifiedPanel: React.FC<UnifiedPanelProps> = ({
                                             daylightTheme={daylightTheme}
                                             visualizerMode={visualizerMode}
                                             onVisualizerModeChange={onVisualizerModeChange}
+                                            backgroundConfig={backgroundConfig}
+                                            backgroundActions={backgroundActions}
                                             useCoverColorBg={useCoverColorBg}
                                             onToggleCoverColorBg={onToggleCoverColorBg}
                                             isDaylight={isDaylight}

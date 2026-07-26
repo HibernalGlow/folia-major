@@ -50,6 +50,7 @@ export interface FoliaPlayerPreferences {
     outputDeviceId?: string;
     visualizerMode: VisualizerMode;
     background: VisualizerBackgroundConfig;
+    themeAnimationIntensity?: Theme['animationIntensity'];
     visualizerTunings?: VisualizerTuningBundle;
     lyricsFontScale?: number;
     subtitleFontScale?: number;
@@ -115,6 +116,7 @@ export interface FoliaPlayerContextValue {
     theme: DualTheme;
     resolvedTheme: Theme;
     isDaylight: boolean;
+    setDaylight?: (isDaylight: boolean) => void;
     outputDevices: FoliaOutputDevice[];
     snapshot: FoliaPlaybackSnapshot;
     actions: FoliaPlayerActions;

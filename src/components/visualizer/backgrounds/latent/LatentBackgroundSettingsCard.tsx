@@ -121,6 +121,7 @@ const LatentBackgroundSettingsCard: React.FC<LatentBackgroundSettingsCardProps> 
                         <button
                             key={value}
                             type="button"
+                            data-folia-background-latent-display={value}
                             onClick={() => onTuningChange?.({ displayMode: value })}
                             className="rounded-xl border px-2 py-2 text-xs"
                             style={{

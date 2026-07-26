@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { RotateCcw } from 'lucide-react';
 import {
     DEFAULT_CAPPELLA_TUNING,
     DEFAULT_CADENZA_TUNING,
@@ -13,15 +14,16 @@ import {
 import { getVisualizerRegistryEntry } from '../../../src/components/visualizer/registry';
 import { getVisualizerBackgroundRegistryEntry } from '../../../src/components/visualizer/backgrounds/registry';
 import type { VisualizerSettingsPanelProps } from '../../../src/components/visualizer/definition';
-import type { VisualizerBackgroundActions } from '../../../src/components/visualizer/backgrounds/definition';
 import type { VisualizerTuningBundle, VisualizerTuningMode } from '../../../src/components/visualizer/tuningRegistry';
 import { useFoliaPlayer } from './PlayerProvider';
+import { useFoliaVisualizerBackgroundPreferences } from './useFoliaVisualizerBackgroundPreferences';
 
 // packages/player/src/VisualizerSettings.tsx
 
 export function FoliaVisualizerSettings() {
     const { t } = useTranslation('folia-player');
     const { actions, isDaylight, preferences, resolvedTheme } = useFoliaPlayer();
+    const { backgroundActions } = useFoliaVisualizerBackgroundPreferences();
     const tunings = preferences.visualizerTunings ?? {};
     const updateTuning = <M extends VisualizerTuningMode>(mode: M, patch: Partial<NonNullable<VisualizerTuningBundle[M]>>) => {
         const current = tunings[mode] ?? defaultTunings[mode];
@@ -50,18 +52,11 @@ export function FoliaVisualizerSettings() {
         monetTuning: tunings.monet ?? DEFAULT_MONET_TUNING,
         onMonetTuningChange: (patch) => updateTuning('monet', patch),
     };
-    const backgroundActions: VisualizerBackgroundActions = {
-        onModeChange: (mode) => actions.setPreferences({ background: { ...preferences.background, mode } }),
-        common: {
-            onCoverColorChange: (useCoverColorBg) => actions.setPreferences({ background: { ...preferences.background, common: { ...preferences.background.common, useCoverColorBg } } }),
-            onOpacityChange: (opacity) => actions.setPreferences({ background: { ...preferences.background, common: { ...preferences.background.common, opacity } } }),
-            onDisableGeometricChange: (disableGeometricBackground) => actions.setPreferences({ background: { ...preferences.background, common: { ...preferences.background.common, disableGeometricBackground } } }),
-            onDisableVignetteChange: (disableVignette) => actions.setPreferences({ background: { ...preferences.background, common: { ...preferences.background.common, disableVignette } } }),
-        },
-    };
     const visualizerPanel = getVisualizerRegistryEntry(preferences.visualizerMode).renderSettingsPanel?.(visualizerProps);
-    const backgroundPanel = preferences.background.mode
-        ? getVisualizerBackgroundRegistryEntry(preferences.background.mode).renderSettingsPanel?.({
+    const backgroundEntry = preferences.background.mode
+        ? getVisualizerBackgroundRegistryEntry(preferences.background.mode)
+        : null;
+    const backgroundPanel = backgroundEntry?.renderSettingsPanel?.({
             config: preferences.background,
             actions: backgroundActions,
             t,
@@ -69,10 +64,25 @@ export function FoliaVisualizerSettings() {
             theme: resolvedTheme,
             controlCardBg: 'color-mix(in srgb, var(--folia-surface) 82%, transparent)',
             rangeInputClass: 'folia-native-range',
-        })
-        : null;
+        });
 
-    return <div className="folia-visualizer-settings">{visualizerPanel}{backgroundPanel}</div>;
+    return <div className="folia-visualizer-settings" data-folia-background-settings>
+        {visualizerPanel}
+        {backgroundPanel ? <div className="space-y-3">
+            {backgroundPanel}
+            {backgroundEntry?.resetSettings ? <button
+                type="button"
+                data-folia-background-reset={preferences.background.mode}
+                className="inline-flex items-center gap-2 rounded-lg border border-current/15 px-3 py-2 text-sm opacity-75 transition-colors hover:bg-current/10 hover:opacity-100"
+                onClick={() => backgroundEntry.resetSettings?.(backgroundActions)}
+                aria-label="Reset background settings"
+                title="Reset background settings"
+            >
+                <RotateCcw size={15} />
+                <span>{t('resetToDefaultTheme')}</span>
+            </button> : null}
+        </div> : null}
+    </div>;
 }
 
 const defaultTunings: Required<VisualizerTuningBundle> = {

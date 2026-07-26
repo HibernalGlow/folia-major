@@ -38,6 +38,7 @@ export interface FoliaPlayerProviderProps {
     host?: FoliaPlayerHostAdapter;
     theme?: DualTheme;
     isDaylight?: boolean;
+    onDaylightChange?: (isDaylight: boolean) => void;
     enabled?: boolean;
 }
 
@@ -58,6 +59,7 @@ export function FoliaPlayerProvider({
     host = {},
     theme = DEFAULT_FOLIA_DUAL_THEME,
     isDaylight = false,
+    onDaylightChange,
     enabled = true,
 }: FoliaPlayerProviderProps) {
     const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -87,6 +89,8 @@ export function FoliaPlayerProvider({
             ...preferenceOverrides?.background,
         },
     }), [preferenceOverrides]);
+    const preferencesRef = useRef(preferences);
+    preferencesRef.current = preferences;
     const effectiveTracks = useMemo(() => tracks.map((track) => mergeResolvedTrack(track, resolved[track.id])), [resolved, tracks]);
     const activeSourceTrack = useMemo(() => tracks.find((track) => track.id === activeId) ?? null, [activeId, tracks]);
     const activeIndex = Math.max(0, effectiveTracks.findIndex((track) => track.id === activeId));
@@ -247,8 +251,10 @@ export function FoliaPlayerProvider({
     }, [activeIndex, isPlaying, preferences.loopMode, selectRandomTrack, selectTrack]);
 
     const setPreferences = useCallback((patch: Partial<FoliaPlayerPreferences>) => {
-        onPreferencesChange?.({ ...preferences, ...patch });
-    }, [onPreferencesChange, preferences]);
+        const nextPreferences = { ...preferencesRef.current, ...patch };
+        preferencesRef.current = nextPreferences;
+        onPreferencesChange?.(nextPreferences);
+    }, [onPreferencesChange]);
 
     const scanLibraryRoots = useCallback(async (roots: string[]) => {
         if (!host.scanLibraryRoots || !roots.length) return;
@@ -327,19 +333,24 @@ export function FoliaPlayerProvider({
         progress: duration > 0 ? clamp(currentTime / duration, 0, 1) : 0,
     }), [activeIndex, activeTrack, currentTime, duration, error, isLoading, isPlaying, lyric?.fullText]);
 
+    const resolvedTheme = useMemo(() => ({
+        ...(isDaylight ? theme.light : theme.dark),
+        ...(preferences.themeAnimationIntensity ? { animationIntensity: preferences.themeAnimationIntensity } : {}),
+    }), [isDaylight, preferences.themeAnimationIntensity, theme]);
     const value = useMemo<FoliaPlayerContextValue>(() => ({
         audio,
         tracks: effectiveTracks,
         libraryRoots,
         preferences,
         theme,
-        resolvedTheme: isDaylight ? theme.light : theme.dark,
+        resolvedTheme,
         isDaylight,
+        setDaylight: onDaylightChange,
         outputDevices,
         snapshot,
         actions,
         motion: analyzer.motion,
-    }), [actions, analyzer.motion, audio, effectiveTracks, isDaylight, libraryRoots, outputDevices, preferences, snapshot, theme]);
+    }), [actions, analyzer.motion, audio, effectiveTracks, isDaylight, libraryRoots, onDaylightChange, outputDevices, preferences, resolvedTheme, snapshot, theme]);
 
     return (
         <FoliaPlayerContext.Provider value={value}>

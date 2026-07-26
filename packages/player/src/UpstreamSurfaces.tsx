@@ -7,6 +7,7 @@ import type { FoliaLoopMode, FoliaTrack } from './types';
 import { FoliaI18nScope } from './FoliaI18nScope';
 import { useFoliaPlayer } from './PlayerProvider';
 import { FoliaPlayerSettingsSurface } from './SettingsSurface';
+import { useFoliaVisualizerBackgroundPreferences } from './useFoliaVisualizerBackgroundPreferences';
 
 export type FoliaPanelTab = 'now' | 'queue' | 'library' | 'settings';
 
@@ -36,7 +37,8 @@ export function FoliaUnifiedPanel({
     extraSettings,
     hideToggleButton = false,
 }: FoliaUnifiedPanelProps) {
-    const { actions, isDaylight, preferences, resolvedTheme, snapshot, tracks } = useFoliaPlayer();
+    const { actions, isDaylight, preferences, resolvedTheme, setDaylight, snapshot, tracks } = useFoliaPlayer();
+    const { backgroundActions, backgroundConfig } = useFoliaVisualizerBackgroundPreferences();
     const [uncontrolledOpen, setUncontrolledOpen] = useState(true);
     const isOpen = open ?? uncontrolledOpen;
     const [tab, setTab] = useState<PanelTab>(() => panelTabFor(initialTab));
@@ -100,16 +102,18 @@ export function FoliaUnifiedPanel({
                     hasLyrics: Boolean(snapshot.activeTrack?.lyrics?.lines.length),
                     canGenerateAITheme: false,
                     theme: resolvedTheme,
-                    onThemeChange: noop,
+                    onThemeChange: theme => actions.setPreferences({ themeAnimationIntensity: theme.animationIntensity }),
                     bgMode: 'default',
                     onBgModeChange: noop,
                     hasCustomTheme: false,
                     themeSourceModel,
-                    onResetTheme: noop,
+                    onResetTheme: () => actions.setPreferences({ themeAnimationIntensity: undefined }),
                     defaultTheme: resolvedTheme,
                     daylightTheme: resolvedTheme,
                     visualizerMode: preferences.visualizerMode,
                     onVisualizerModeChange: (visualizerMode: VisualizerMode) => actions.setPreferences({ visualizerMode }),
+                    backgroundConfig,
+                    backgroundActions,
                     onMatchOnline: noop,
                     onUpdateLocalLyrics: noop,
                     onChangeLyricsSource: noop,
@@ -181,10 +185,10 @@ export function FoliaUnifiedPanel({
                     onClearCache: noop,
                     onSyncData: noop,
                     isSyncing: false,
-                    useCoverColorBg: false,
-                    onToggleCoverColorBg: noop,
+                    useCoverColorBg: backgroundConfig.common?.useCoverColorBg ?? false,
+                    onToggleCoverColorBg: useCoverColorBg => backgroundActions.common?.onCoverColorChange?.(useCoverColorBg),
                     isDaylight,
-                    onToggleDaylight: noop,
+                    onToggleDaylight: () => setDaylight?.(!isDaylight),
                 }}
             /></FoliaI18nScope>
             <FoliaPlayerSettingsSurface open={settingsOpen} onClose={() => setSettingsOpen(false)} extraSettings={extraSettings} />
